@@ -1,0 +1,4 @@
+[submodule "x/anytrust"]
+	path = x/anytrust
+	url = https://github.com/eniac-x-labs/anytrustDA.git
+	branch = wwq/dev
