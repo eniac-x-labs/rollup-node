@@ -2,6 +2,8 @@ module github.com/eniac-x-labs/rollup-node
 
 go 1.22
 
+replace github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
+
 require (
 	github.com/Layr-Labs/eigenda v0.6.1
 	github.com/Layr-Labs/eigenda/api v0.6.1
