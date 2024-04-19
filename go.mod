@@ -2,6 +2,8 @@ module github.com/eniac-x-labs/rollup-node
 
 go 1.22
 
+replace github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
+
 require (
 	github.com/Layr-Labs/eigenda v0.6.1
 	github.com/Layr-Labs/eigenda/api v0.6.1
@@ -9,12 +11,14 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-stack/stack v1.8.0
 	github.com/holiman/uint256 v1.2.4
+	github.com/near/rollup-data-availability v0.2.3
 	github.com/prometheus/client_golang v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sync v0.6.0
 	golang.org/x/term v0.17.0
 	google.golang.org/grpc v1.63.2
+
 )
 
 require (
@@ -64,6 +68,7 @@ require (
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
