@@ -12,10 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	eth "github.com/eniac-x-labs/rollup-node/x/eip4844/eth-serivce"
-	service "github.com/eniac-x-labs/rollup-node/x/eip4844/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/log"
-	signer "github.com/eniac-x-labs/rollup-node/x/eip4844/signer"
+	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
+	service "github.com/eniac-x-labs/rollup-node/eth-serivce"
+	"github.com/eniac-x-labs/rollup-node/log"
+	signer "github.com/eniac-x-labs/rollup-node/signer"
 )
 
 const (

@@ -15,9 +15,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/log"
-	dptls "github.com/eniac-x-labs/rollup-node/x/eip4844/tls"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/tls/certman"
+	"github.com/eniac-x-labs/rollup-node/log"
+	dptls "github.com/eniac-x-labs/rollup-node/tls"
+	"github.com/eniac-x-labs/rollup-node/tls/certman"
 )
 
 type SignerClient struct {
@@ -70,12 +70,7 @@ func NewSignerClient(logger log.Logger, endpoint string, tlsConfig dptls.CLIConf
 	}
 
 	signer := &SignerClient{logger: logger, client: rpcClient}
-	// Check if reachable
-	version, err := signer.pingVersion()
-	if err != nil {
-		return nil, err
-	}
-	signer.status = fmt.Sprintf("ok [version=%v]", version)
+
 	return signer, nil
 }
 

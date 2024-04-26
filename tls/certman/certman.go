@@ -17,7 +17,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/log"
+	"github.com/eniac-x-labs/rollup-node/log"
 )
 
 // A CertMan represents a certificate manager able to watch certificate

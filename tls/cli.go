@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	service "github.com/eniac-x-labs/rollup-node/x/eip4844/eth-serivce"
+	service "github.com/eniac-x-labs/rollup-node/eth-serivce"
 )
 
 const (

@@ -1,38 +1,111 @@
 package eip4844
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"math/big"
+	"sync/atomic"
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 
+	"github.com/eniac-x-labs/rollup-node/client"
+	"github.com/eniac-x-labs/rollup-node/common/cliapp"
+	"github.com/eniac-x-labs/rollup-node/config"
+	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
+	"github.com/eniac-x-labs/rollup-node/log"
 	metrics2 "github.com/eniac-x-labs/rollup-node/metrics"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/config"
-	eth "github.com/eniac-x-labs/rollup-node/x/eip4844/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/log"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/metrics"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/txmgr"
+	"github.com/eniac-x-labs/rollup-node/txmgr"
+	"github.com/eniac-x-labs/rollup-node/txmgr/metrics"
 )
 
+var ErrAlreadyStopped = errors.New("already stopped")
+
 type Eip4844Rollup struct {
-	Txmgr   txmgr.TxManager
-	Config  config.CLIConfig
-	Metrics metrics.Metricer
-	Log     log.Logger
+	Eip4844Config  CLIConfig
+	Txmgr          txmgr.TxManager
+	Config         *config.CLIConfig
+	Metrics        metrics.Metricer
+	l1BeaconClient *eth.L1BeaconClient
+	Log            log.Logger
+	stopped        atomic.Bool
+	driverCtx      context.Context
 }
 
-func (e *Eip4844Rollup) NewEip4844Rollup(cliCtx *cli.Context) error {
+func (e *Eip4844Rollup) Start(ctx context.Context) error {
+	client, _ := ethclient.DialContext(context.Background(), "https://eth-mainnet.g.alchemy.com/v2/-EK96JwUb8C_l_EfZqaLumlZG6PV8SDq")
+
+	block, _ := client.BlockByNumber(context.Background(), new(big.Int).SetUint64(19560971))
+
+	data, err := e.DataFromEVMTransactions(block)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(len(data))
+
+	return nil
+}
+
+func (e *Eip4844Rollup) Stop(ctx context.Context) error {
+	if e.stopped.Load() {
+		return ErrAlreadyStopped
+	}
+
+	e.Log.Info("Stopping eip4844 rollup service")
+
+	if e.Txmgr != nil {
+		e.Txmgr.Close()
+	}
+
+	e.stopped.Store(true)
+	e.Log.Info("eip4844 rollup service stopped")
+
+	return nil
+}
+
+func (e *Eip4844Rollup) Stopped() bool {
+	return e.stopped.Load()
+}
+
+func NewEip4844Rollup(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (cliapp.Lifecycle, error) {
 
 	cfg, err := config.NewConfig(cliCtx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	eip4844Config := ReadCLIConfig(cliCtx)
 
 	logger := log.NewLogger(log.AppOut(cliCtx), cfg.LogConfig).New("eip-4844")
 	log.SetGlobalLogHandler(logger.GetHandler())
+
+	return Eip4844ServiceFromCLIConfig(cliCtx.Context, cfg, eip4844Config, logger)
+}
+
+func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) (*Eip4844Rollup, error) {
+	var e Eip4844Rollup
+	if err := e.initFromCLIConfig(ctx, cfg, eip4844Config, logger); err != nil {
+		return nil, errors.Join(err, e.Stop(ctx)) // try to clean up our failed initialization attempt
+	}
+	return &e, nil
+}
+
+func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) error {
+
+	e.Config = cfg
+	e.Eip4844Config = eip4844Config
 	e.Log = logger
+
+	bCl := client.NewBasicHTTPClient(eip4844Config.L1BeaconAddr)
+	beaconCfg := eth.L1BeaconClientConfig{
+		FetchAllSidecars: eip4844Config.ShouldFetchAllSidecars,
+	}
+	e.l1BeaconClient = eth.NewL1BeaconClient(bCl, beaconCfg)
 
 	e.initMetrics(cfg)
 
@@ -42,6 +115,8 @@ func (e *Eip4844Rollup) NewEip4844Rollup(cliCtx *cli.Context) error {
 	if err := e.initMetricsServer(cfg); err != nil {
 		return err
 	}
+
+	e.driverCtx = ctx
 
 	return nil
 }
@@ -88,7 +163,7 @@ func (e *Eip4844Rollup) sendTransaction(tx types.Transaction, queue *txmgr.Queue
 	data := tx.Data()
 
 	var candidate *txmgr.TxCandidate
-	if e.Config.UseBlobs {
+	if e.Eip4844Config.UseBlobs {
 		var err error
 		if candidate, err = e.blobTxCandidate(data); err != nil {
 			// We could potentially fall through and try a calldata tx instead, but this would
@@ -119,24 +194,55 @@ func (e *Eip4844Rollup) blobTxCandidate(data []byte) (*txmgr.TxCandidate, error)
 		return nil, fmt.Errorf("data could not be converted to blob: %w", err)
 	}
 	return &txmgr.TxCandidate{
-		To:    &e.Config.BatchInboxAddress,
+		To:    &e.Eip4844Config.DSConfig.batchInboxAddress,
 		Blobs: []*eth.Blob{&b},
 	}, nil
 }
 
 func (e *Eip4844Rollup) calldataTxCandidate(data []byte) *txmgr.TxCandidate {
 	return &txmgr.TxCandidate{
-		To:     &e.Config.BatchInboxAddress,
+		To:     &e.Eip4844Config.DSConfig.batchInboxAddress,
 		TxData: data,
 	}
 }
 
-func (e *Eip4844Rollup) getBlobData(blob eth.Blob) (eth.Data, error) {
-	data, err := blob.ToData()
+func (e *Eip4844Rollup) DataFromEVMTransactions(block *types.Block) (datas []eth.Data, err error) {
+
+	_, hashes := dataAndHashesFromTxs(block.Transactions(), e.Eip4844Config.DSConfig, e.Log)
+	if len(hashes) == 0 {
+		// there are no blobs to fetch so we can return immediately
+		return nil, nil
+	}
+
+	ref := eth.L1BlockRef{
+		Hash:       block.Hash(),
+		Number:     block.NumberU64(),
+		ParentHash: block.ParentHash(),
+		Time:       block.Time(),
+	}
+	blobs, err := e.l1BeaconClient.GetBlobs(e.driverCtx, ref, hashes)
+	if errors.Is(err, ethereum.NotFound) {
+		// If the L1 block was available, then the blobs should be available too. The only
+		// exception is if the blob retention window has expired, which we will ultimately handle
+		// by failing over to a blob archival service.
+		return nil, fmt.Errorf("failed to fetch blobs: %w", err)
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to fetch blobs: %w", err)
+	}
+
+	for _, blob := range blobs {
+		data, err := blob.ToData()
+		if err != nil {
+			return nil, fmt.Errorf("decodes the blob into raw byte data failed: %w", err)
+		}
+
+		datas = append(datas, data)
+	}
+
 	if err != nil {
 		e.Log.Error("ignoring blob due to parse failure", "err", err)
 		return nil, err
 	}
 
-	return data, nil
+	return datas, nil
 }
