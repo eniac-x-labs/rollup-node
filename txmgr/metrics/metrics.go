@@ -1,24 +1,22 @@
 package metrics
 
 import (
+	"github.com/eniac-x-labs/rollup-node/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-
-	"github.com/eniac-x-labs/rollup-node/metrics"
-	txmetrics "github.com/eniac-x-labs/rollup-node/x/eip4844/txmgr/metrics"
 )
 
 const Namespace = "eip-4844-rollup"
 
 type Metricer interface {
-	txmetrics.TxMetricer
+	TxMetricer
 }
 
 type Metrics struct {
 	ns       string
 	Registry *prometheus.Registry
 	Factory  metrics.Factory
-	txmetrics.TxMetrics
+	TxMetrics
 }
 
 var _ Metricer = (*Metrics)(nil)
@@ -37,7 +35,7 @@ func NewMetrics(procName string) *Metrics {
 		Registry: registry,
 		Factory:  factory,
 
-		TxMetrics: txmetrics.MakeTxMetrics(ns, factory),
+		TxMetrics: MakeTxMetrics(ns, factory),
 	}
 }
 

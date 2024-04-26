@@ -5,8 +5,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	service "github.com/eniac-x-labs/rollup-node/x/eip4844/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/tls"
+	service "github.com/eniac-x-labs/rollup-node/eth-serivce"
+	"github.com/eniac-x-labs/rollup-node/tls"
 )
 
 const (

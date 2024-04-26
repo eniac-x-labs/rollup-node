@@ -9,7 +9,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
-	txmgr "github.com/eniac-x-labs/rollup-node/x/eip4844/txmgr"
+	txmgr "github.com/eniac-x-labs/rollup-node/txmgr"
 
 	types "github.com/ethereum/go-ethereum/core/types"
 )

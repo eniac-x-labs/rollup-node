@@ -21,10 +21,10 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/log"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/retry"
-	"github.com/eniac-x-labs/rollup-node/x/eip4844/txmgr/metrics"
+	"github.com/eniac-x-labs/rollup-node/eth-serivce"
+	"github.com/eniac-x-labs/rollup-node/log"
+	"github.com/eniac-x-labs/rollup-node/retry"
+	"github.com/eniac-x-labs/rollup-node/txmgr/metrics"
 )
 
 const (
