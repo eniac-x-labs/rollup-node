@@ -116,7 +116,7 @@ type Logger interface {
 	// SetHandler updates the logger to write records to the specified handler.
 	SetHandler(h Handler)
 
-	// Log a message at the trace level with context key/value pairs
+	// logger a message at the trace level with context key/value pairs
 	//
 	// # Usage
 	//
@@ -125,7 +125,7 @@ type Logger interface {
 	//	log.Trace("msg", "key1", val1, "key2", val2)
 	Trace(msg string, ctx ...interface{})
 
-	// Log a message at the debug level with context key/value pairs
+	// logger a message at the debug level with context key/value pairs
 	//
 	// # Usage Examples
 	//
@@ -134,7 +134,7 @@ type Logger interface {
 	//	log.Debug("msg", "key1", val1, "key2", val2)
 	Debug(msg string, ctx ...interface{})
 
-	// Log a message at the info level with context key/value pairs
+	// logger a message at the info level with context key/value pairs
 	//
 	// # Usage Examples
 	//
@@ -143,7 +143,7 @@ type Logger interface {
 	//	log.Info("msg", "key1", val1, "key2", val2)
 	Info(msg string, ctx ...interface{})
 
-	// Log a message at the warn level with context key/value pairs
+	// logger a message at the warn level with context key/value pairs
 	//
 	// # Usage Examples
 	//
@@ -152,7 +152,7 @@ type Logger interface {
 	//	log.Warn("msg", "key1", val1, "key2", val2)
 	Warn(msg string, ctx ...interface{})
 
-	// Log a message at the error level with context key/value pairs
+	// logger a message at the error level with context key/value pairs
 	//
 	// # Usage Examples
 	//
@@ -161,7 +161,7 @@ type Logger interface {
 	//	log.Error("msg", "key1", val1, "key2", val2)
 	Error(msg string, ctx ...interface{})
 
-	// Log a message at the crit level with context key/value pairs, and then exit.
+	// logger a message at the crit level with context key/value pairs, and then exit.
 	//
 	// # Usage Examples
 	//

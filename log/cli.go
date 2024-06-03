@@ -44,7 +44,7 @@ func CLIFlags(envPrefix string) []cli.Flag {
 }
 
 // LvlFlagValue is a value type for cli.GenericFlag to parse and validate log-level values.
-// Log level: trace, debug, info, warn, error, crit. Capitals are accepted too.
+// logger level: trace, debug, info, warn, error, crit. Capitals are accepted too.
 type LvlFlagValue Lvl
 
 func NewLvlFlagValue(lvl Lvl) *LvlFlagValue {

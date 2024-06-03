@@ -48,7 +48,7 @@ func StreamHandler(wr io.Writer, fmtr Format) Handler {
 }
 
 // SyncHandler can be wrapped around a handler to guarantee that
-// only a single Log operation can proceed at a time. It's necessary
+// only a single logger operation can proceed at a time. It's necessary
 // for thread-safe concurrent writes.
 func SyncHandler(h Handler) Handler {
 	var mu sync.Mutex

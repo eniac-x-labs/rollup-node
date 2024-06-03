@@ -31,7 +31,7 @@ func Root() Logger {
 
 // Trace is a convenient alias for Root().Trace
 //
-// Log a message at the trace level with context key/value pairs
+// logger a message at the trace level with context key/value pairs
 //
 // # Usage
 //
@@ -44,7 +44,7 @@ func Trace(msg string, ctx ...interface{}) {
 
 // Debug is a convenient alias for Root().Debug
 //
-// Log a message at the debug level with context key/value pairs
+// logger a message at the debug level with context key/value pairs
 //
 // # Usage Examples
 //
@@ -57,7 +57,7 @@ func Debug(msg string, ctx ...interface{}) {
 
 // Info is a convenient alias for Root().Info
 //
-// Log a message at the info level with context key/value pairs
+// logger a message at the info level with context key/value pairs
 //
 // # Usage Examples
 //
@@ -70,7 +70,7 @@ func Info(msg string, ctx ...interface{}) {
 
 // Warn is a convenient alias for Root().Warn
 //
-// Log a message at the warn level with context key/value pairs
+// logger a message at the warn level with context key/value pairs
 //
 // # Usage Examples
 //
@@ -83,7 +83,7 @@ func Warn(msg string, ctx ...interface{}) {
 
 // Error is a convenient alias for Root().Error
 //
-// Log a message at the error level with context key/value pairs
+// logger a message at the error level with context key/value pairs
 //
 // # Usage Examples
 //
@@ -96,7 +96,7 @@ func Error(msg string, ctx ...interface{}) {
 
 // Crit is a convenient alias for Root().Crit
 //
-// Log a message at the crit level with context key/value pairs, and then exit.
+// logger a message at the crit level with context key/value pairs, and then exit.
 //
 // # Usage Examples
 //
