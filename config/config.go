@@ -34,9 +34,9 @@ func NewConfig(ctx *cli.Context) (*CLIConfig, error) {
 
 type RollupConfig struct {
 	AnytrustDAConfig *AnytrustConfig
-	CelestiaDAConfig
+	//CelestiaDAConfig
 	EigenDAConfig *eigenda.EigenDAConfig
-	Eip4844Config
+	//Eip4844Config
 	NearDAConfig *nearda.NearADConfig
 }
 

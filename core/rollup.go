@@ -193,7 +193,7 @@ func (r *RollupModule) GetFromDAWithType(daType int, args ...interface{}) ([]byt
 		log.Debug("get from da successfully")
 		return result, nil
 	default:
-		log.Error("GetFromDAWithType got unknown da type", "daType", daType, "expected", "[0,4]")
+		log.Error("RetrieveFromDAWithType got unknown da type", "daType", daType, "expected", "[0,4]")
 	}
 	return nil, _errors.UnknownDATypeErr
 }
