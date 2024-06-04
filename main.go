@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 
 	_config "github.com/eniac-x-labs/rollup-node/config"
 	_core "github.com/eniac-x-labs/rollup-node/core"
@@ -32,8 +33,10 @@ func main() {
 	}
 
 	// start rpc for sdk
+	var wg sync.WaitGroup
 	if len(rpcAddress) != 0 {
-		go _rpc.NewAndStartRollupRpcServer(rpcAddress, rollupModule)
+		wg.Add(1)
+		go _rpc.NewAndStartRollupRpcServer(ctx, wg, rpcAddress, rollupModule)
 	}
 
 	quit := make(chan os.Signal, 1)
@@ -41,6 +44,6 @@ func main() {
 	<-quit
 	fmt.Println("Shutting down server...")
 	cancel()
-
+	wg.Wait()
 	fmt.Println("Server gracefully stopped")
 }

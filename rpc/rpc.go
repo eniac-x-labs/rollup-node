@@ -1,8 +1,10 @@
 package rpc
 
 import (
+	"context"
 	"net"
 	"net/rpc"
+	"sync"
 
 	_core "github.com/eniac-x-labs/rollup-node/core"
 	"github.com/ethereum/go-ethereum/log"
@@ -26,7 +28,8 @@ type RollupRpcServer struct {
 	_core.RollupInter
 }
 
-func NewAndStartRollupRpcServer(address string, rollup _core.RollupInter) {
+func NewAndStartRollupRpcServer(ctx context.Context, wg sync.WaitGroup, address string, rollup _core.RollupInter) {
+	defer wg.Done()
 	if err := rpc.Register(&RollupRpcServer{
 		rollup,
 	}); err != nil {
@@ -43,12 +46,18 @@ func NewAndStartRollupRpcServer(address string, rollup _core.RollupInter) {
 	log.Debug("RpcServer listen address finished", "address", address)
 
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Error("RpcServer listener.Accept failed", "err", err)
-		}
+		select {
+		case <-ctx.Done():
+			listener.Close()
+			return
+		default:
+			conn, err := listener.Accept()
+			if err != nil {
+				log.Error("RpcServer listener.Accept failed", "err", err)
+			}
 
-		go rpc.ServeConn(conn)
+			go rpc.ServeConn(conn)
+		}
 	}
 }
 
