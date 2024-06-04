@@ -114,7 +114,7 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 	return nil, _errors.UnknownDATypeErr
 }
 
-func (r *RollupModule) GetFromDAWithType(daType int, args ...interface{}) ([]byte, error) {
+func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) ([]byte, error) {
 	switch daType {
 	case AnytrustType:
 		if r.anytrustDA == nil {
