@@ -31,12 +31,14 @@ func NewAndStartRollupRpcServer(address string, rollup _core.RollupInter) {
 		rollup,
 	}); err != nil {
 		log.Error("RpcServer Register failed", "err", err)
+		return
 	}
 	log.Debug("RpcServer Register finished")
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Error("RpcServer Listen failed", "err", err, "address", address)
+		return
 	}
 	log.Debug("RpcServer listen address finished", "address", address)
 

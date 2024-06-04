@@ -9,12 +9,12 @@ type NearDAClient struct {
 	*near.Config
 }
 
-type NearADConfig struct {
-	Account  string
-	Contract string
-	Key      string
-	Network  string // nearDA only support "Mainnet", "Testnet", "Localnet"
-	Ns       uint32
+type NearDAConfig struct {
+	Account  string `toml:"account"`
+	Contract string `toml:"contract"`
+	Key      string `toml:"key"`
+	Network  string `toml:"network"` // nearDA only support "Mainnet", "Testnet", "Localnet"
+	Ns       uint32 `toml:"ns"`
 }
 
 type INearDA interface {
@@ -22,7 +22,7 @@ type INearDA interface {
 	GetFromDA(frameRefBytes []byte, txIndex uint32) ([]byte, error)
 }
 
-func NewNearDAClient(nearconf *NearADConfig) (INearDA, error) {
+func NewNearDAClient(nearconf *NearDAConfig) (INearDA, error) {
 	conf, err := near.NewConfig(nearconf.Account, nearconf.Contract, nearconf.Key, nearconf.Network, nearconf.Ns)
 	if err != nil {
 		log.Error("NewConfig failed:", err)

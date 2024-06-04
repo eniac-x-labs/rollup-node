@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 
+	common2 "github.com/eniac-x-labs/rollup-node/common"
 	_errors "github.com/eniac-x-labs/rollup-node/common/errors"
 	_config "github.com/eniac-x-labs/rollup-node/config"
+	//"github.com/eniac-x-labs/anytrustDA/das"
+
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
 	"github.com/eniac-x-labs/rollup-node/x/nearda"
@@ -60,7 +63,7 @@ func NewRollupModule(ctx context.Context, conf *_config.RollupConfig) (RollupInt
 func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, error) {
 	res := make([]interface{}, 0)
 	switch daType {
-	case AnytrustType:
+	case common2.AnytrustType:
 		if r.anytrustDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
 			return nil, _errors.DANotPreparedErr
@@ -75,9 +78,9 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 
 		res = append(res, daCert)
 		return res, nil
-	case CelestiaType:
+	case common2.CelestiaType:
 
-	case EigenDAType:
+	case common2.EigenDAType:
 		if r.eigenDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eigenDA")
 			return nil, _errors.DANotPreparedErr
@@ -92,8 +95,8 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 
 		res = append(res, reqIDBase64)
 		return res, nil
-	case Eip4844Type:
-	case NearDAType:
+	case common2.Eip4844Type:
+	case common2.NearDAType:
 		if r.nearDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
 			return nil, _errors.DANotPreparedErr
@@ -116,7 +119,7 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 
 func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) ([]byte, error) {
 	switch daType {
-	case AnytrustType:
+	case common2.AnytrustType:
 		if r.anytrustDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
 			return nil, _errors.DANotPreparedErr
@@ -136,8 +139,8 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 
 		log.Debug("get from anytrustDA successfully", "hashHex", hashHex)
 		return res, nil
-	case CelestiaType:
-	case EigenDAType:
+	case common2.CelestiaType:
+	case common2.EigenDAType:
 		if r.eigenDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eigenDA")
 			return nil, _errors.DANotPreparedErr
@@ -168,8 +171,8 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 
 		log.Debug("get from eigenda successfully", "reqIDBase64", reqIDBase64)
 		return res, nil
-	case Eip4844Type:
-	case NearDAType:
+	case common2.Eip4844Type:
+	case common2.NearDAType:
 		if r.nearDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
 			return nil, _errors.DANotPreparedErr

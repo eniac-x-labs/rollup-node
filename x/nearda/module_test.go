@@ -20,7 +20,7 @@ const (
 	DA_NS      = 1
 )
 
-var testConf = NearADConfig{
+var testConf = NearDAConfig{
 	Account:  DA_ACCOUNT,
 	Contract: DA_CONTRACT,
 	Key:      DA_KEY,
