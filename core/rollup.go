@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -143,7 +144,21 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 		return res, nil
 
 	case CelestiaType:
-		r.celestiaDA.SendTransaction(data)
+		if r.celestiaDA == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "celestiaDA")
+			return nil, _errors.DANotPreparedErr
+		}
+
+		txHash, err := r.celestiaDA.SendTransaction(r.ctx, data)
+		if err != nil {
+			log.Error(_errors.RollupFailedMsg, "da-type", "celestiaDA", "err", err)
+			return nil, err
+		}
+		txHashStr := fmt.Sprintf("0x%s", hex.EncodeToString(txHash))
+		log.Debug("celestiaDA stored data", "txHash", txHashStr)
+
+		res = append(res, txHashStr)
+		return res, nil
 	case _common.EigenDAType:
 		if r.eigenDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eigenDA")
@@ -161,7 +176,20 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 		res = append(res, reqIDBase64)
 		return res, nil
 	case _common.Eip4844Type:
-		r.eip4844.SendTransaction(data)
+		if r.eip4844 == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eip4844")
+			return nil, _errors.DANotPreparedErr
+		}
+
+		txHash, err := r.eip4844.SendTransaction(data)
+		if err != nil {
+			log.Error(_errors.RollupFailedMsg, "da-type", "eip4844", "err", err)
+			return nil, err
+		}
+		txHashStr := fmt.Sprintf("0x%s", hex.EncodeToString(txHash))
+		log.Debug("eip4844 stored data", "txHash", txHashStr)
+		res = append(res, txHashStr)
+		return res, nil
 	case _common.NearDAType:
 		if r.nearDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
@@ -205,6 +233,26 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 		log.Debug("get from anytrustDA successfully", "hashHex", hashHex)
 		return res, nil
 	case _common.CelestiaType:
+		if r.celestiaDA == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "celestiaDA")
+			return nil, _errors.DANotPreparedErr
+		}
+		if len(args) != 1 {
+			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "celestiaDA", "got", len(args), "expected", 1)
+			return nil, _errors.WrongArgsNumberErr
+		}
+		reqTxHashStr := args[0].(string)
+		log.Debug("request get from celestiaDA", "reqTxHashStr", reqTxHashStr)
+
+		res, err := r.celestiaDA.DataFromEVMTransactions(reqTxHashStr)
+		if err != nil {
+			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqTxHashStr", reqTxHashStr, "da-type", "celestiaDA")
+			return nil, err
+		}
+
+		log.Debug("get from celestiaDA successfully", "reqTxHashStr", reqTxHashStr)
+		return res, nil
+
 	case _common.EigenDAType:
 		if r.eigenDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eigenDA")
@@ -225,7 +273,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqIDBase64", reqIDBase64, "da-type", "eigenDA")
 			return nil, err
 		}
-		log.Debug("get from eigenda", "status", status.String(), "reqIDBase64", reqIDBase64)
+		log.Debug("get from eigenDA", "status", status.String(), "reqIDBase64", reqIDBase64)
 
 		batchHeaderHash, blobIndex := info.BlobVerificationProof.GetBatchMetadata().GetBatchHeaderHash(), info.GetBlobVerificationProof().GetBlobIndex()
 		res, err := r.eigenDA.RetrieveBlob(r.ctx, batchHeaderHash, blobIndex)
@@ -234,9 +282,28 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			return nil, err
 		}
 
-		log.Debug("get from eigenda successfully", "reqIDBase64", reqIDBase64)
+		log.Debug("get from eigenDA successfully", "reqIDBase64", reqIDBase64)
 		return res, nil
 	case _common.Eip4844Type:
+		if r.eip4844 == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eip4844")
+			return nil, _errors.DANotPreparedErr
+		}
+		if len(args) != 1 {
+			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "eip4844", "got", len(args), "expected", 1)
+			return nil, _errors.WrongArgsNumberErr
+		}
+		reqTxHashStr := args[0].(string)
+		log.Debug("request get from eip4844", "reqTxHashStr", reqTxHashStr)
+
+		res, err := r.eip4844.DataFromEVMTransactions(r.ctx, reqTxHashStr)
+		if err != nil {
+			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqTxHashStr", reqTxHashStr, "da-type", "eip4844")
+			return nil, err
+		}
+
+		log.Debug("get from eip4844 successfully", "reqTxHashStr", reqTxHashStr)
+		return res, nil
 	case _common.NearDAType:
 		if r.nearDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
@@ -258,7 +325,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			return nil, err
 		}
 
-		log.Debug("get from da successfully")
+		log.Debug("get from nearDA successfully")
 		return result, nil
 	default:
 		log.Error("RetrieveFromDAWithType got unknown da type", "daType", daType, "expected", "[0,4]")

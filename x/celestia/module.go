@@ -33,7 +33,6 @@ type CelestiaRollup struct {
 	Signer         signer.SignerFn
 	From           common.Address
 	stopped        atomic.Bool
-	driverCtx      context.Context
 }
 
 func (c *CelestiaRollup) Stop(ctx context.Context) error {
@@ -91,8 +90,6 @@ func (c *CelestiaRollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIC
 		return err
 	}
 
-	c.driverCtx = ctx
-
 	return nil
 }
 
@@ -108,39 +105,39 @@ func (c *CelestiaRollup) initDA(celestiaConfig CLIConfig) error {
 // SendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
 // It currently uses the underlying `txmgr` to handle transaction sending & price management.
 // This is a blocking method. It should not be called concurrently.
-func (c *CelestiaRollup) SendTransaction(data []byte) error {
+func (c *CelestiaRollup) SendTransaction(ctx context.Context, data []byte) ([]byte, error) {
 
 	candidate, err := c.calldataTxCandidate(data)
 	if err != nil {
 		c.Log.Error("building Calldata transaction candidate", "err", err)
-		return nil
+		return nil, err
 	}
 
 	intrinsicGas, err := core.IntrinsicGas(data, nil, false, true, true, false)
 	if err != nil {
 		c.Log.Error("Failed to calculate intrinsic gas", "error", err)
-		return err
+		return nil, err
 	}
 	candidate.GasLimit = intrinsicGas
 
-	tx, err := c.craftTx(*candidate)
+	tx, err := c.craftTx(ctx, *candidate)
 	if err != nil {
 		c.Log.Error("Failed to create a transaction", "err", err)
-		return err
+		return nil, err
 	}
 
-	signTx, err := c.Signer(c.driverCtx, c.From, tx)
+	signTx, err := c.Signer(ctx, c.From, tx)
 	if err != nil {
 		c.Log.Error("Failed to sign a transaction", "err", err)
-		return err
+		return nil, err
 	}
 
-	err = c.ethClients.SendTransaction(c.driverCtx, signTx)
+	err = c.ethClients.SendTransaction(ctx, signTx)
 	if err != nil {
 		c.Log.Error("Failed to send transaction", "err", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return signTx.Hash().Bytes(), nil
 }
 
 func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, error) {
@@ -164,56 +161,60 @@ func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, err
 	}, nil
 }
 
-func (c *CelestiaRollup) DataFromEVMTransactions(block types.Block) ([]eth.Data, error) {
-	var out []eth.Data
-	for _, tx := range block.Transactions() {
-		if to := tx.To(); to != nil && *to == c.CelestiaConfig.DSConfig.batchInboxAddress {
-			if isValidBatchTx(tx, c.CelestiaConfig.DSConfig.l1Signer, c.CelestiaConfig.DSConfig.batchInboxAddress, c.CelestiaConfig.DSConfig.batcherAddr) {
-				data := tx.Data()
-				switch len(data) {
-				case 0:
-					out = append(out, data)
-				default:
-					switch data[0] {
-					case DerivationVersionCelestia:
-						log.Info("celestia: blob request", "id", hex.EncodeToString(tx.Data()))
-						ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.Config.BlockTime)*time.Second)
-						blobs, err := c.DAClient.Client.Get(ctx, [][]byte{data[1:]}, c.DAClient.Namespace)
-						cancel()
-						if err != nil {
-							return nil, fmt.Errorf("celestia: failed to resolve frame: %w", err)
-						}
-						if len(blobs) != 1 {
-							log.Warn("celestia: unexpected length for blobs", "expected", 1, "got", len(blobs))
-							if len(blobs) == 0 {
-								log.Warn("celestia: skipping empty blobs")
-								continue
-							}
-						}
-						out = append(out, blobs[0])
-					default:
-						out = append(out, data)
-						log.Info("celestia: using eth fallback")
+func (c *CelestiaRollup) DataFromEVMTransactions(txHashStr string) (eth.Data, error) {
+	var out eth.Data
+
+	tx, err := c.ethClients.TxByHash(common.HexToHash(txHashStr))
+	if err != nil {
+		c.Log.Error("failed to get transaction", "tx_hash", txHashStr)
+		return nil, err
+	}
+
+	if to := tx.To(); to != nil && *to == c.CelestiaConfig.DSConfig.batchInboxAddress {
+		if isValidBatchTx(tx, c.CelestiaConfig.DSConfig.l1Signer, c.CelestiaConfig.DSConfig.batchInboxAddress, c.CelestiaConfig.DSConfig.batcherAddr) {
+			data := tx.Data()
+			switch len(data) {
+			case 0:
+				out = data
+			default:
+				switch data[0] {
+				case DerivationVersionCelestia:
+					log.Info("celestia: blob request", "id", hex.EncodeToString(tx.Data()))
+					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.Config.BlockTime)*time.Second)
+					blobs, err := c.DAClient.Client.Get(ctx, [][]byte{data[1:]}, c.DAClient.Namespace)
+					cancel()
+					if err != nil {
+						return nil, fmt.Errorf("celestia: failed to resolve frame: %w", err)
 					}
+					if len(blobs) != 1 {
+						log.Warn("celestia: unexpected length for blobs", "expected", 1, "got", len(blobs))
+						if len(blobs) == 0 {
+							log.Warn("celestia: skipping empty blobs")
+						}
+					}
+					out = blobs[0]
+				default:
+					out = data
+					log.Info("celestia: using eth fallback")
 				}
 			}
-
 		}
+
 	}
 
 	return out, nil
 }
 
-func (c *CelestiaRollup) craftTx(candidate eth.TxCandidate) (*types.Transaction, error) {
+func (c *CelestiaRollup) craftTx(ctx context.Context, candidate eth.TxCandidate) (*types.Transaction, error) {
 	c.Log.Debug("crafting Transaction", "blobs", len(candidate.Blobs), "calldata_size", len(candidate.TxData))
 
-	tip, err := c.ethClients.SuggestGasTipCap(c.driverCtx)
+	tip, err := c.ethClients.SuggestGasTipCap(ctx)
 	if err != nil {
 		c.Log.Error(fmt.Errorf("failed to fetch the suggested gas tip cap: %w", err).Error())
 		return nil, err
 	}
 
-	header, err := c.ethClients.HeaderByNumber(c.driverCtx, nil)
+	header, err := c.ethClients.HeaderByNumber(ctx, nil)
 	if err != nil {
 		c.Log.Error(fmt.Errorf("failed to fetch the suggested base fee: %w", err).Error())
 		return nil, err

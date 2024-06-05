@@ -99,7 +99,7 @@ func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *config.CLICo
 // SendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
 // It currently uses the underlying `txmgr` to handle transaction sending & price management.
 // This is a blocking method. It should not be called concurrently.
-func (e *Eip4844Rollup) SendTransaction(data []byte) error {
+func (e *Eip4844Rollup) SendTransaction(data []byte) ([]byte, error) {
 	// Do the gas estimation offline. A value of 0 will cause the [txmgr] to estimate the gas limit.
 
 	var candidate *eth.TxCandidate
@@ -110,7 +110,7 @@ func (e *Eip4844Rollup) SendTransaction(data []byte) error {
 			// likely result in the chain spending more in gas fees than it is tuned for, so best
 			// to just fail. We do not expect this error to trigger unless there is a serious bug
 			// or configuration issue.
-			return fmt.Errorf("could not create blob tx candidate: %w", err)
+			return nil, fmt.Errorf("could not create blob tx candidate: %w", err)
 		}
 	} else {
 		candidate = e.calldataTxCandidate(data)
@@ -126,22 +126,22 @@ func (e *Eip4844Rollup) SendTransaction(data []byte) error {
 	tx, err := e.craftTx(*candidate)
 	if err != nil {
 		e.Log.Error("Failed to create a transaction", "err", err)
-		return err
+		return nil, err
 	}
 
 	signTx, err := e.Signer(e.driverCtx, e.From, tx)
 	if err != nil {
 		e.Log.Error("Failed to sign a transaction", "err", err)
-		return err
+		return nil, err
 	}
 
 	err = e.ethClients.SendTransaction(e.driverCtx, signTx)
 	if err != nil {
 		e.Log.Error("Failed to send transaction", "err", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return signTx.Hash().Bytes(), nil
 }
 
 func (e *Eip4844Rollup) blobTxCandidate(data []byte) (*eth.TxCandidate, error) {
@@ -163,20 +163,30 @@ func (e *Eip4844Rollup) calldataTxCandidate(data []byte) *eth.TxCandidate {
 	}
 }
 
-func (e *Eip4844Rollup) DataFromEVMTransactions(block *types.Block) (datas []eth.Data, err error) {
+func (e *Eip4844Rollup) DataFromEVMTransactions(ctx context.Context, txHashStr string) (data eth.Data, err error) {
+	var datas []eth.Data
+	var txs types.Transactions
 
-	_, hashes := dataAndHashesFromTxs(block.Transactions(), e.Eip4844Config.DSConfig, e.Log)
+	tx, header, err := e.getTransactionAndBlockByTxHash(ctx, txHashStr)
+	if err != nil {
+		log.Error("failed to get transaction and block by tx hash", "tx_hash", txHashStr, "err", err)
+		return nil, err
+	}
+	txs = append(txs, tx)
+
+	_, hashes := dataAndHashesFromTxs(txs, e.Eip4844Config.DSConfig, e.Log)
 	if len(hashes) == 0 {
 		// there are no blobs to fetch so we can return immediately
 		return nil, nil
 	}
 
 	ref := eth.L1BlockRef{
-		Hash:       block.Hash(),
-		Number:     block.NumberU64(),
-		ParentHash: block.ParentHash(),
-		Time:       block.Time(),
+		Hash:       header.Hash(),
+		Number:     header.Number.Uint64(),
+		ParentHash: header.ParentHash,
+		Time:       header.Time,
 	}
+
 	blobs, err := e.l1BeaconClient.GetBlobs(e.driverCtx, ref, hashes)
 	if errors.Is(err, ethereum.NotFound) {
 		// If the L1 block was available, then the blobs should be available too. The only
@@ -196,12 +206,7 @@ func (e *Eip4844Rollup) DataFromEVMTransactions(block *types.Block) (datas []eth
 		datas = append(datas, data)
 	}
 
-	if err != nil {
-		e.Log.Error("ignoring blob due to parse failure", "err", err)
-		return nil, err
-	}
-
-	return datas, nil
+	return datas[0], nil
 }
 
 func (e *Eip4844Rollup) craftTx(candidate eth.TxCandidate) (*types.Transaction, error) {
@@ -256,4 +261,26 @@ func MakeSidecar(blobs []*eth.Blob) (*types.BlobTxSidecar, []common.Hash, error)
 		blobHashes = append(blobHashes, eth.KZGToVersionedHash(commitment))
 	}
 	return sidecar, blobHashes, nil
+}
+
+func (e *Eip4844Rollup) getTransactionAndBlockByTxHash(ctx context.Context, txHashStr string) (*types.Transaction, *types.Header, error) {
+	tx, err := e.ethClients.TxByHash(common.HexToHash(txHashStr))
+	if err != nil {
+		e.Log.Error("failed to get transaction", "tx_hash", txHashStr)
+		return nil, nil, err
+	}
+
+	receipt, err := e.ethClients.TxReceiptDetailByHash(tx.Hash())
+	if err != nil {
+		e.Log.Error("failed to get transaction receipt", "tx_hash", txHashStr)
+		return nil, nil, err
+	}
+
+	header, err := e.ethClients.HeaderByNumber(ctx, receipt.BlockNumber)
+	if err != nil {
+		e.Log.Error("failed to get block header by number", "number", receipt.BlockNumber)
+		return nil, nil, err
+	}
+
+	return tx, header, nil
 }
