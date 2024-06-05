@@ -4,17 +4,15 @@ go 1.21.1
 
 toolchain go1.21.10
 
-replace (
-	//github.com/eniac-x-labs/anytrustDA => ./x/anytrust/anytrustDA
-	github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
-)
+//github.com/eniac-x-labs/anytrustDA => ./x/anytrust/anytrustDA
+replace github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
 
 require (
 	github.com/Layr-Labs/eigenda v0.6.1
 	github.com/Layr-Labs/eigenda/api v0.6.1
 	//github.com/eniac-x-labs/anytrustDA v0.0.0
 	github.com/ethereum/go-ethereum v1.13.14
-	github.com/fsnotify/fsnotify v1.6.0
+	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-stack/stack v1.8.1
 	github.com/holiman/uint256 v1.2.4
 	github.com/near/rollup-data-availability v0.0.0-00010101000000-000000000000
@@ -23,7 +21,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/sync v0.6.0
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/term v0.16.0
 	google.golang.org/grpc v1.62.1
 )
@@ -88,7 +86,6 @@ require (
 	github.com/spf13/cast v1.3.0 // indirect
 	github.com/spf13/jwalterweatherman v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect

@@ -6,7 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	service "github.com/eniac-x-labs/rollup-node/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/tls"
+	//"github.com/eniac-x-labs/rollup-node/tls"
 )
 
 const (
@@ -28,26 +28,26 @@ func CLIFlags(envPrefix string) []cli.Flag {
 			EnvVars: service.PrefixEnvVar(envPrefix, "ADDRESS"),
 		},
 	}
-	flags = append(flags, tls.CLIFlagsWithFlagPrefix(envPrefix, "signer")...)
+	//flags = append(flags, tls.CLIFlagsWithFlagPrefix(envPrefix, "signer")...)
 	return flags
 }
 
 type CLIConfig struct {
-	Endpoint  string
-	Address   string
-	TLSConfig tls.CLIConfig
+	Endpoint string
+	Address  string
+	//TLSConfig tls.CLIConfig
 }
 
 func NewCLIConfig() CLIConfig {
 	return CLIConfig{
-		TLSConfig: tls.NewCLIConfig(),
+		//TLSConfig: tls.NewCLIConfig(),
 	}
 }
 
 func (c CLIConfig) Check() error {
-	if err := c.TLSConfig.Check(); err != nil {
-		return err
-	}
+	//if err := c.TLSConfig.Check(); err != nil {
+	//	return err
+	//}
 	if !((c.Endpoint == "" && c.Address == "") || (c.Endpoint != "" && c.Address != "")) {
 		return errors.New("signer endpoint and address must both be set or not set")
 	}
@@ -63,9 +63,9 @@ func (c CLIConfig) Enabled() bool {
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	cfg := CLIConfig{
-		Endpoint:  ctx.String(EndpointFlagName),
-		Address:   ctx.String(AddressFlagName),
-		TLSConfig: tls.ReadCLIConfigWithPrefix(ctx, "signer"),
+		Endpoint: ctx.String(EndpointFlagName),
+		Address:  ctx.String(AddressFlagName),
+		//TLSConfig: tls.ReadCLIConfigWithPrefix(ctx, "signer"),
 	}
 	return cfg
 }

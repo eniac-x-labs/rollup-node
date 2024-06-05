@@ -2,12 +2,9 @@ package signer
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"math/big"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,8 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/eniac-x-labs/rollup-node/log"
-	dptls "github.com/eniac-x-labs/rollup-node/tls"
-	"github.com/eniac-x-labs/rollup-node/tls/certman"
+	//dptls "github.com/eniac-x-labs/rollup-node/tls"
+	//"github.com/eniac-x-labs/rollup-node/tls/certman"
 )
 
 type SignerClient struct {
@@ -26,43 +23,43 @@ type SignerClient struct {
 	logger log.Logger
 }
 
-func NewSignerClient(logger log.Logger, endpoint string, tlsConfig dptls.CLIConfig) (*SignerClient, error) {
+func NewSignerClient(logger log.Logger, endpoint string) (*SignerClient, error) {
 	var httpClient *http.Client
-	if tlsConfig.TLSEnable == true {
-		logger.Info("tlsConfig specified, loading tls config")
-		caCert, err := os.ReadFile(tlsConfig.TLSCaCert)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read tls.ca: %w", err)
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
-		// certman watches for newer client certifictes and automatically reloads them
-		cm, err := certman.New(logger, tlsConfig.TLSCert, tlsConfig.TLSKey)
-		if err != nil {
-			logger.Error("failed to read tls cert or key", "err", err)
-			return nil, err
-		}
-		if err := cm.Watch(); err != nil {
-			logger.Error("failed to start certman watcher", "err", err)
-			return nil, err
-		}
-
-		httpClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					MinVersion: tls.VersionTLS13,
-					RootCAs:    caCertPool,
-					GetClientCertificate: func(_ *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-						return cm.GetCertificate(nil)
-					},
-				},
-			},
-		}
-	} else {
-		logger.Info("no tlsConfig specified, using default http client")
-		httpClient = http.DefaultClient
-	}
+	//if tlsConfig.TLSEnable == true {
+	//	logger.Info("tlsConfig specified, loading tls config")
+	//	caCert, err := os.ReadFile(tlsConfig.TLSCaCert)
+	//	if err != nil {
+	//		return nil, fmt.Errorf("failed to read tls.ca: %w", err)
+	//	}
+	//	caCertPool := x509.NewCertPool()
+	//	caCertPool.AppendCertsFromPEM(caCert)
+	//
+	//	// certman watches for newer client certifictes and automatically reloads them
+	//	cm, err := certman.New(logger, tlsConfig.TLSCert, tlsConfig.TLSKey)
+	//	if err != nil {
+	//		logger.Error("failed to read tls cert or key", "err", err)
+	//		return nil, err
+	//	}
+	//	if err := cm.Watch(); err != nil {
+	//		logger.Error("failed to start certman watcher", "err", err)
+	//		return nil, err
+	//	}
+	//
+	//	httpClient = &http.Client{
+	//		Transport: &http.Transport{
+	//			TLSClientConfig: &tls.Config{
+	//				MinVersion: tls.VersionTLS13,
+	//				RootCAs:    caCertPool,
+	//				GetClientCertificate: func(_ *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+	//					return cm.GetCertificate(nil)
+	//				},
+	//			},
+	//		},
+	//	}
+	//} else {
+	logger.Info("no tlsConfig specified, using default http client")
+	httpClient = http.DefaultClient
+	//}
 
 	rpcClient, err := rpc.DialOptions(context.Background(), endpoint, rpc.WithHTTPClient(httpClient))
 	if err != nil {
@@ -75,7 +72,7 @@ func NewSignerClient(logger log.Logger, endpoint string, tlsConfig dptls.CLIConf
 }
 
 func NewSignerClientFromConfig(logger log.Logger, config CLIConfig) (*SignerClient, error) {
-	return NewSignerClient(logger, config.Endpoint, config.TLSConfig)
+	return NewSignerClient(logger, config.Endpoint)
 }
 
 func (s *SignerClient) pingVersion() (string, error) {
