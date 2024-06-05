@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/eniac-x-labs/rollup-node/common/cliapp"
 	"github.com/eniac-x-labs/rollup-node/core"
 	"github.com/eniac-x-labs/rollup-node/flags"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/urfave/cli/v2"
-	"os"
 )
 
 var (
@@ -27,7 +28,7 @@ func main() {
 			Name:        "rollup-node",
 			Flags:       flags.Flags,
 			Description: "Runs the rollup node service",
-			Action:      cliapp.LifecycleCmd(core.NewRollupModule),
+			Action:      cliapp.LifecycleCmd(core.NewRollupModule_hk),
 		},
 	}
 

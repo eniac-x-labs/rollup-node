@@ -1,7 +1,3 @@
-; [submodule "anytrustDA"]
-; 	path = x/anytrust/anytrustDA
-; 	url = https://github.com/eniac-x-labs/anytrustDA.git
-; 	branch = main
 [submodule "anytrustDA"]
 	path = x/anytrust/anytrustDA
 	url = https://github.com/eniac-x-labs/anytrustDA.git

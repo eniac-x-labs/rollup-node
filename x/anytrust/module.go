@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/arbstate"
-	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/das"
-	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/util/signature"
+	"github.com/eniac-x-labs/anytrustDA/arbstate"
+	"github.com/eniac-x-labs/anytrustDA/das"
+	"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"

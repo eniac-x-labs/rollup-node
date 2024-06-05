@@ -35,7 +35,7 @@ func main() {
 	// start rpc for sdk
 	var wg sync.WaitGroup
 	if len(rpcAddress) != 0 {
-		wg.Add(1)
+		//wg.Add(1)
 		go _rpc.NewAndStartRollupRpcServer(ctx, wg, rpcAddress, rollupModule)
 	}
 
@@ -44,6 +44,6 @@ func main() {
 	<-quit
 	fmt.Println("Shutting down server...")
 	cancel()
-	wg.Wait()
+	//wg.Wait()
 	fmt.Println("Server gracefully stopped")
 }

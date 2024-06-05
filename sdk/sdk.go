@@ -30,7 +30,7 @@ func (s *RollupSDK) RollupWithType(data []byte, daType int) ([]interface{}, erro
 	return res, err
 }
 
-func (s *RollupSDK) RetrieveFromDAWithType(daType int, args ...interface{}) ([]byte, error) {
+func (s *RollupSDK) RetrieveFromDAWithType(daType int, args interface{}) ([]byte, error) {
 	var res []byte
 	err := s.Call("RollupRpcServer.Retrieve", _rpc.RetrieveRequest{
 		DAType: daType,
