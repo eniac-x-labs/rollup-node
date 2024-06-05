@@ -9,15 +9,20 @@ type NearDAClient struct {
 	*near.Config
 }
 
-type NearADConfig struct {
-	Account  string
-	Contract string
-	Key      string
-	Network  string // 目前nearDA只支持 "Mainnet", "Testnet", "Localnet"这3个string
-	Ns       uint32
+type NearDAConfig struct {
+	Account  string `toml:"account"`
+	Contract string `toml:"contract"`
+	Key      string `toml:"key"`
+	Network  string `toml:"network"` // nearDA only support "Mainnet", "Testnet", "Localnet"
+	Ns       uint32 `toml:"ns"`
 }
 
-func NewNearDAClient(nearconf NearADConfig) (*NearDAClient, error) {
+type INearDA interface {
+	Store(data []byte) ([]byte, error)
+	GetFromDA(frameRefBytes []byte, txIndex uint32) ([]byte, error)
+}
+
+func NewNearDAClient(nearconf *NearDAConfig) (INearDA, error) {
 	conf, err := near.NewConfig(nearconf.Account, nearconf.Contract, nearconf.Key, nearconf.Network, nearconf.Ns)
 	if err != nil {
 		log.Error("NewConfig failed:", err)
@@ -30,10 +35,10 @@ func NewNearDAClient(nearconf NearADConfig) (*NearDAClient, error) {
 //	return n.Submit(candidateHex, data)
 //}
 //
-//func (n *NearDAClient) GetFromDa(frameRefBytes []byte, txIndex uint32) ([]byte, error) {
-//	return n.Get(frameRefBytes, txIndex)
-//}
-//
-//func (n *NearDAClient) ForceSubmitData(data []byte) ([]byte, error) {
-//	return n.ForceSubmit(data)
-//}
+
+func (n *NearDAClient) Store(data []byte) ([]byte, error) {
+	return n.ForceSubmit(data)
+}
+func (n *NearDAClient) GetFromDA(frameRefBytes []byte, txIndex uint32) ([]byte, error) {
+	return n.Get(frameRefBytes, txIndex)
+}

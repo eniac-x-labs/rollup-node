@@ -20,7 +20,7 @@ const (
 	DA_NS      = 1
 )
 
-var testConf = NearADConfig{
+var testConf = NearDAConfig{
 	Account:  DA_ACCOUNT,
 	Contract: DA_CONTRACT,
 	Key:      DA_KEY,
@@ -36,13 +36,13 @@ func Test_NewNearDAClient(t *testing.T) {
 	//
 	//testConf.Key = keyBase64
 	//dacli, err := near.NewConfig(DA_ACCOUNT, DA_CONTRACT, DA_KEY, DA_NETWORK, DA_NS)
-	dacli, err := NewNearDAClient(testConf)
+	dacli, err := NewNearDAClient(&testConf)
 	ast.NoError(err)
 	ast.NotNil(dacli)
 
 	t.Log("==================== Start Submitting ========================")
 	dataStr := "hello nearDA"
-	res, err := dacli.ForceSubmit([]byte(dataStr))
+	res, err := dacli.Store([]byte(dataStr))
 	ast.NoError(err)
 	t.Logf("ForceSubmit result: %s", res)
 	t.Logf("len of submit result: %d", len(res))
@@ -51,7 +51,7 @@ func Test_NewNearDAClient(t *testing.T) {
 	txid := binary.BigEndian.Uint32(res[:32])
 	t.Logf("txid: %d", txid)
 
-	getRes, err := dacli.Get(res, txid)
+	getRes, err := dacli.GetFromDA(res, txid)
 	ast.NoError(err)
 	t.Logf("getRes: %s", getRes)
 }

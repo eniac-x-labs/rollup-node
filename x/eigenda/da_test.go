@@ -22,7 +22,7 @@ func Test_EigendaDisperseBlob(t *testing.T) {
 	ast := assert.New(t)
 	ctx := context.Background()
 	log.SetDefault(log.NewLogger(log.NewTerminalHandler(os.Stdout, true)))
-	daCli, err := InitEigenDAClient(&testConf, log.Root())
+	daCli, err := NewEigenDAClient(&testConf)
 	ast.NoError(err)
 	txData := []byte("hahaha eigenda")
 	reqID, err := daCli.DisperseBlob(ctx, txData)
@@ -40,7 +40,7 @@ func Test_GetBlobInfo(t *testing.T) {
 	ast := assert.New(t)
 	ctx := context.Background()
 	log.SetDefault(log.NewLogger(log.NewTerminalHandler(os.Stdout, true)))
-	daCli, err := InitEigenDAClient(&testConf, log.Root())
+	daCli, err := NewEigenDAClient(&testConf)
 	ast.NoError(err)
 
 	reqIDBase64 := "MzdkZTcxNDIxODgyZTlhMjg4YmUxN2YxNjUyMjFlZTk0OTI5MDNmZWM2M2YxMmY2MzU4YTg2NGQzZGQxZjQxMi0zMTM3MzEzMzMxMzAzMTM4MzkzOTM5MzUzNjM3MzYzMzMwMzYzNTJmMzAyZjMzMzMyZjMxMmYzMzMzMmZlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1"
@@ -60,7 +60,7 @@ func Test_RetrieveBlob(t *testing.T) {
 	blobIndex := 494
 
 	log.SetDefault(log.NewLogger(log.NewTerminalHandler(os.Stdout, true)))
-	dacli, err := InitEigenDAClient(&testConf, log.Root())
+	dacli, err := NewEigenDAClient(&testConf)
 	ast.NoError(err)
 	batchHeadHashByte, err := hex.DecodeString(batchHeadHash)
 	ast.NoError(err)

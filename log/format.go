@@ -122,7 +122,7 @@ func TerminalFormat(usecolor bool) Format {
 		b := &bytes.Buffer{}
 		lvl := r.Lvl.AlignedString()
 		if locationEnabled.Load() {
-			// Log origin printing was requested, format the location path and line number
+			// logger origin printing was requested, format the location path and line number
 			location := fmt.Sprintf("%+v", r.Call)
 			for _, prefix := range locationTrims {
 				location = strings.TrimPrefix(location, prefix)
