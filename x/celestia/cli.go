@@ -15,14 +15,17 @@ import (
 )
 
 const (
-	L1ChainIdFlagName = "l1.chain-id"
-	DaRpcFlagName     = "celestia.da.rpc"
+	L1RPCFlagName      = "l1-eth-rpc"
+	PrivateKeyFlagName = "private-key"
+	L1ChainIdFlagName  = "l1.chain-id"
+	DaRpcFlagName      = "celestia.da.rpc"
 	// AuthTokenFlagName defines the flag for the auth token
 	AuthTokenFlagName = "celestia.da.auth_token"
 	// NamespaceFlagName defines the flag for the namespace
-	NamespaceFlagName         = "celestia.da.namespace"
-	BatcherAddressFlagName    = "celestia..batcher-address"
-	BatchInboxAddressFlagName = "celestia..batch-inbox-address"
+	NamespaceFlagName           = "celestia.da.namespace"
+	BatcherAddressFlagName      = "celestia..batcher-address"
+	BatchInboxAddressFlagName   = "celestia..batch-inbox-address"
+	EthFallbackDisabledFlagName = "celestia.eth_fallback_disabled"
 )
 
 var (
@@ -51,6 +54,18 @@ func Check(address string) error {
 
 func CLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
+		&cli.StringFlag{
+			Name:     L1RPCFlagName,
+			Usage:    "The rpc url of l1.",
+			Required: true,
+			EnvVars:  eth.PrefixEnvVar(envPrefix, "L1_ETH_RPC"),
+		},
+		&cli.StringFlag{
+			Name:     PrivateKeyFlagName,
+			Usage:    "The private key to use with the service. Must not be used with mnemonic.",
+			Required: true,
+			EnvVars:  eth.PrefixEnvVar(envPrefix, "PRIVATE_KEY"),
+		},
 		&cli.Uint64Flag{
 			Name:     L1ChainIdFlagName,
 			Usage:    "The chain id of l1.",
@@ -72,6 +87,11 @@ func CLIFlags(envPrefix string) []cli.Flag {
 			Name:    NamespaceFlagName,
 			Usage:   "namespace of the data availability client",
 			EnvVars: eth.PrefixEnvVar(envPrefix, "CELESTIA_DA_NAMESPACE"),
+		},
+		&cli.BoolFlag{
+			Name:    EthFallbackDisabledFlagName,
+			Usage:   "disable eth fallback",
+			EnvVars: eth.PrefixEnvVar(envPrefix, "CELESTIA_DA_ETH_FALLBACK_DISABLED"),
 		},
 		&cli.StringFlag{
 			Name:     BatcherAddressFlagName,
@@ -105,10 +125,14 @@ func (c Config) Check() error {
 }
 
 type CLIConfig struct {
-	DaRpc     string
-	AuthToken string
-	Namespace string
-	DSConfig  *DataSourceConfig
+	L1Rpc               string
+	L1ChainID           *big.Int
+	PrivateKey          string
+	DaRpc               string
+	AuthToken           string
+	Namespace           string
+	EthFallbackDisabled bool
+	DSConfig            *DataSourceConfig
 }
 
 func (c CLIConfig) Check() error {
@@ -139,9 +163,13 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		batcherAddr:       common.HexToAddress(ctx.String(BatcherAddressFlagName)),
 	}
 	return CLIConfig{
-		DaRpc:     ctx.String(DaRpcFlagName),
-		AuthToken: ctx.String(AuthTokenFlagName),
-		Namespace: ctx.String(NamespaceFlagName),
-		DSConfig:  &dsConfig,
+		L1Rpc:               ctx.String(L1RPCFlagName),
+		L1ChainID:           new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)),
+		PrivateKey:          ctx.String(PrivateKeyFlagName),
+		DaRpc:               ctx.String(DaRpcFlagName),
+		AuthToken:           ctx.String(AuthTokenFlagName),
+		Namespace:           ctx.String(NamespaceFlagName),
+		EthFallbackDisabled: ctx.Bool(EthFallbackDisabledFlagName),
+		DSConfig:            &dsConfig,
 	}
 }

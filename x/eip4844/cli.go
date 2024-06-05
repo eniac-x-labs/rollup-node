@@ -12,6 +12,8 @@ import (
 )
 
 const (
+	L1RPCFlagName                    = "l1-eth-rpc"
+	PrivateKeyFlagName               = "private-key"
 	L1ChainIdFlagName                = "l1.chain-id"
 	DataAvailabilityTypeFlagName     = "data-availability-type"
 	L1BeaconFlagName                 = "l1.beacon"
@@ -22,6 +24,18 @@ const (
 
 func CLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
+		&cli.StringFlag{
+			Name:     L1RPCFlagName,
+			Usage:    "The rpc url of l1.",
+			Required: true,
+			EnvVars:  eth.PrefixEnvVar(envPrefix, "L1_ETH_RPC"),
+		},
+		&cli.StringFlag{
+			Name:     PrivateKeyFlagName,
+			Usage:    "The private key to use with the service. Must not be used with mnemonic.",
+			Required: true,
+			EnvVars:  eth.PrefixEnvVar(envPrefix, "PRIVATE_KEY"),
+		},
 		&cli.Uint64Flag{
 			Name:     L1ChainIdFlagName,
 			Usage:    "The chain id of l1.",
@@ -63,6 +77,8 @@ func CLIFlags(envPrefix string) []cli.Flag {
 }
 
 type CLIConfig struct {
+	L1Rpc                  string
+	PrivateKey             string
 	L1ChainID              *big.Int
 	DSConfig               *DataSourceConfig
 	UseBlobs               bool
@@ -97,6 +113,8 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	}
 
 	return CLIConfig{
+		L1Rpc:                  ctx.String(L1RPCFlagName),
+		PrivateKey:             ctx.String(PrivateKeyFlagName),
 		L1ChainID:              new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)),
 		DSConfig:               &dsConfig,
 		UseBlobs:               useBlobs,

@@ -3,6 +3,8 @@ package eth_serivce
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 	"reflect"
 	"strconv"
 
@@ -184,4 +186,18 @@ func (v *Uint64String) UnmarshalText(b []byte) error {
 	}
 	*v = Uint64String(n)
 	return nil
+}
+
+type TxCandidate struct {
+	// TxData is the transaction calldata to be used in the constructed tx.
+	TxData []byte
+	// Blobs to send along in the tx (optional). If len(Blobs) > 0 then a blob tx
+	// will be sent instead of a DynamicFeeTx.
+	Blobs []*Blob
+	// To is the recipient of the constructed tx. Nil means contract creation.
+	To *common.Address
+	// GasLimit is the gas limit to be used in the constructed tx.
+	GasLimit uint64
+	// Value is the value to be used in the constructed tx.
+	Value *big.Int
 }
