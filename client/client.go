@@ -32,7 +32,6 @@ const (
 )
 
 type EthClient interface {
-	TxReceiptByHash(common.Hash) (*types.Transaction, error)
 	SendTransaction(ctx context.Context, tx *types.Transaction) error
 	GetBalanceByBlockNumber(address string, blockNumber *big.Int) (*big.Int, error)
 	GetLatestBlock() (*big.Int, error)
@@ -40,6 +39,7 @@ type EthClient interface {
 	TxReceiptDetailByHash(hash common.Hash) (*types.Receipt, error)
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
+	TxByHash(common.Hash) (*types.Transaction, error)
 	Close()
 }
 
@@ -70,21 +70,6 @@ func DialEthClient(ctx context.Context, rpcUrl string) (EthClient, error) {
 	}
 
 	return &clnt{rpc: NewRPC(rpcClient)}, nil
-}
-
-func (c *clnt) TxReceiptByHash(hash common.Hash) (*types.Transaction, error) {
-	ctxwt, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
-	defer cancel()
-
-	var tx *types.Transaction
-	err := c.rpc.CallContext(ctxwt, &tx, "eth_getTransactionByHash", hash)
-	if err != nil {
-		return nil, err
-	} else if tx == nil {
-		return nil, ethereum.NotFound
-	}
-
-	return tx, nil
 }
 
 // SendTransaction injects a signed transaction into the pending pool for execution.
@@ -185,6 +170,21 @@ func (c *clnt) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Head
 		err = ethereum.NotFound
 	}
 	return head, err
+}
+
+func (c *clnt) TxByHash(hash common.Hash) (*types.Transaction, error) {
+	ctxwt, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
+	defer cancel()
+
+	var tx *types.Transaction
+	err := c.rpc.CallContext(ctxwt, &tx, "eth_getTransactionByHash", hash)
+	if err != nil {
+		return nil, err
+	} else if tx == nil {
+		return nil, ethereum.NotFound
+	}
+
+	return tx, nil
 }
 
 // CallContract executes a message call transaction, which is directly executed in the VM
