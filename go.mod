@@ -1,15 +1,17 @@
 module github.com/eniac-x-labs/rollup-node
 
-go 1.21.1
-
-toolchain go1.21.10
+go 1.22
 
 //github.com/eniac-x-labs/anytrustDA => ./x/anytrust/anytrustDA
-replace github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
+replace (
+	//github.com/eniac-x-labs/nitro => ./x/anytrust/anytrustDA
+	github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
+)
 
 require (
 	github.com/Layr-Labs/eigenda v0.6.1
 	github.com/Layr-Labs/eigenda/api v0.6.1
+	//github.com/OffchainLabs/nitro/v2 v2.2.5
 	//github.com/eniac-x-labs/anytrustDA v0.0.0
 	github.com/ethereum/go-ethereum v1.13.14
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
