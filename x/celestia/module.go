@@ -5,38 +5,35 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"time"
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/eniac-x-labs/rollup-node/common/cliapp"
+	"github.com/eniac-x-labs/rollup-node/client"
 	"github.com/eniac-x-labs/rollup-node/config"
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
 	"github.com/eniac-x-labs/rollup-node/log"
-	metrics2 "github.com/eniac-x-labs/rollup-node/metrics"
-	"github.com/eniac-x-labs/rollup-node/txmgr"
-	"github.com/eniac-x-labs/rollup-node/txmgr/metrics"
+	"github.com/eniac-x-labs/rollup-node/signer"
 )
 
 var ErrAlreadyStopped = errors.New("already stopped")
 
 type CelestiaRollup struct {
 	CelestiaConfig CLIConfig
-	Txmgr          txmgr.TxManager
 	Config         *config.CLIConfig
-	Metrics        metrics.Metricer
 	Log            log.Logger
 	DAClient       *DAClient
+	ethClients     client.EthClient
+	Signer         signer.SignerFn
+	From           common.Address
 	stopped        atomic.Bool
 	driverCtx      context.Context
-}
-
-func (c *CelestiaRollup) Start(ctx context.Context) error {
-	return nil
 }
 
 func (c *CelestiaRollup) Stop(ctx context.Context) error {
@@ -44,14 +41,10 @@ func (c *CelestiaRollup) Stop(ctx context.Context) error {
 		return ErrAlreadyStopped
 	}
 
-	c.Log.Info("Stopping eip4844 rollup service")
-
-	if c.Txmgr != nil {
-		c.Txmgr.Close()
-	}
+	c.Log.Info("Stopping Celestia rollup service")
 
 	c.stopped.Store(true)
-	c.Log.Info("eip4844 rollup service stopped")
+	c.Log.Info("Celestia rollup service stopped")
 
 	return nil
 }
@@ -61,16 +54,13 @@ func (c *CelestiaRollup) Stopped() bool {
 
 }
 
-func NewCelestiaRollup(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (cliapp.Lifecycle, error) {
+func NewCelestiaRollup(cliCtx *cli.Context, logger log.Logger) (*CelestiaRollup, error) {
 
 	cfg, err := config.NewConfig(cliCtx)
 	if err != nil {
 		return nil, err
 	}
 	CelestiaConfig := ReadCLIConfig(cliCtx)
-
-	logger := log.NewLogger(log.AppOut(cliCtx), cfg.LogConfig).New("celestia")
-	log.SetGlobalLogHandler(logger.GetHandler())
 
 	return CelestiaServiceFromCLIConfig(cliCtx.Context, cfg, CelestiaConfig, logger)
 }
@@ -89,16 +79,15 @@ func (c *CelestiaRollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIC
 	c.CelestiaConfig = celestiaConfig
 	c.Log = logger
 
+	signerFactory, from, err := signer.SignerFactoryFromPrivateKey(celestiaConfig.PrivateKey)
+	if err != nil {
+		log.Error(fmt.Errorf("could not init signer: %w", err).Error())
+		return err
+	}
+	c.Signer = signerFactory(celestiaConfig.L1ChainID)
+	c.From = from
+
 	if err := c.initDA(celestiaConfig); err != nil {
-		return err
-	}
-
-	c.initMetrics(cfg)
-
-	if err := c.initTxManager(cfg, c.Log); err != nil {
-		return err
-	}
-	if err := c.initMetricsServer(cfg); err != nil {
 		return err
 	}
 
@@ -108,7 +97,7 @@ func (c *CelestiaRollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIC
 }
 
 func (c *CelestiaRollup) initDA(celestiaConfig CLIConfig) error {
-	client, err := NewDAClient(celestiaConfig.DaRpc, celestiaConfig.AuthToken, celestiaConfig.Namespace)
+	client, err := NewDAClient(celestiaConfig.DaRpc, celestiaConfig.AuthToken, celestiaConfig.Namespace, celestiaConfig.EthFallbackDisabled)
 	if err != nil {
 		return err
 	}
@@ -116,55 +105,15 @@ func (c *CelestiaRollup) initDA(celestiaConfig CLIConfig) error {
 	return nil
 }
 
-func (c *CelestiaRollup) initTxManager(cfg *config.CLIConfig, logger log.Logger) error {
-	txManager, err := txmgr.NewSimpleTxManager("celestia-rollup", logger, c.Metrics, cfg.TxMgrConfig)
-	if err != nil {
-		return err
-	}
-	c.Txmgr = txManager
-	return nil
-}
-
-func (c *CelestiaRollup) initMetrics(cfg *config.CLIConfig) {
-	if cfg.MetricsConfig.Enabled {
-		procName := "default"
-		c.Metrics = metrics.NewMetrics(procName)
-	}
-}
-
-func (c *CelestiaRollup) initMetricsServer(cfg *config.CLIConfig) error {
-	if !cfg.MetricsConfig.Enabled {
-		c.Log.Info("metrics disabled")
-		return nil
-	}
-	m, ok := c.Metrics.(metrics.RegistryMetricer)
-	if !ok {
-		return fmt.Errorf("metrics were enabled, but metricer %T does not expose registry for metrics-server", c.Metrics)
-	}
-	c.Log.Debug("starting metrics server", "addr", cfg.MetricsConfig.ListenAddr, "port", cfg.MetricsConfig.ListenPort)
-	addr, err := metrics2.StartServer(m.Registry(), cfg.MetricsConfig.ListenAddr, cfg.MetricsConfig.ListenPort)
-	if err != nil {
-		return fmt.Errorf("failed to start metrics server: %w", err)
-	}
-	c.Log.Info("started metrics server", "addr", addr)
-	return nil
-}
-
-// sendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
+// SendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
 // It currently uses the underlying `txmgr` to handle transaction sending & price management.
 // This is a blocking method. It should not be called concurrently.
-func (c *CelestiaRollup) sendTransaction(tx types.Transaction, queue *txmgr.Queue[types.Transaction], receiptsCh chan txmgr.TxReceipt[types.Transaction]) error {
-	// Do the gas estimation offline. A value of 0 will cause the [txmgr] to estimate the gas limit.
-	data := tx.Data()
+func (c *CelestiaRollup) SendTransaction(data []byte) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.Config.BlockTime)*time.Second)
-	ids, err := c.DAClient.Client.Submit(ctx, [][]byte{data}, -1, c.DAClient.Namespace)
-	cancel()
-	if err == nil && len(ids) == 1 {
-		c.Log.Info("celestia: blob successfully submitted", "id", hex.EncodeToString(ids[0]))
-		data = append([]byte{DerivationVersionCelestia}, ids[0]...)
-	} else {
-		c.Log.Info("celestia: blob submission failed; falling back to eth", "err", err)
+	candidate, err := c.calldataTxCandidate(data)
+	if err != nil {
+		c.Log.Error("building Calldata transaction candidate", "err", err)
+		return nil
 	}
 
 	intrinsicGas, err := core.IntrinsicGas(data, nil, false, true, true, false)
@@ -172,15 +121,47 @@ func (c *CelestiaRollup) sendTransaction(tx types.Transaction, queue *txmgr.Queu
 		c.Log.Error("Failed to calculate intrinsic gas", "error", err)
 		return err
 	}
+	candidate.GasLimit = intrinsicGas
 
-	candidate := txmgr.TxCandidate{
-		To:       &c.CelestiaConfig.DSConfig.batchInboxAddress,
-		TxData:   data,
-		GasLimit: intrinsicGas,
+	tx, err := c.craftTx(*candidate)
+	if err != nil {
+		c.Log.Error("Failed to create a transaction", "err", err)
+		return err
 	}
 
-	queue.Send(tx, candidate, receiptsCh)
+	signTx, err := c.Signer(c.driverCtx, c.From, tx)
+	if err != nil {
+		c.Log.Error("Failed to sign a transaction", "err", err)
+		return err
+	}
+
+	err = c.ethClients.SendTransaction(c.driverCtx, signTx)
+	if err != nil {
+		c.Log.Error("Failed to send transaction", "err", err)
+		return err
+	}
 	return nil
+}
+
+func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, error) {
+	c.Log.Info("building Calldata transaction candidate", "size", len(data))
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.Config.BlockTime)*time.Second)
+	ids, err := c.DAClient.Client.Submit(ctx, [][]byte{data}, -1, c.DAClient.Namespace)
+	cancel()
+	if err == nil && len(ids) == 1 {
+		c.Log.Info("celestia: blob successfully submitted", "id", hex.EncodeToString(ids[0]))
+		data = append([]byte{DerivationVersionCelestia}, ids[0]...)
+	} else {
+		if c.DAClient.EthFallbackDisabled {
+			return nil, fmt.Errorf("celestia: blob submission failed; eth fallback disabled: %w", err)
+		}
+
+		c.Log.Info("celestia: blob submission failed; falling back to eth", "err", err)
+	}
+	return &eth.TxCandidate{
+		To:     &c.CelestiaConfig.DSConfig.batchInboxAddress,
+		TxData: data,
+	}, nil
 }
 
 func (c *CelestiaRollup) DataFromEVMTransactions(block types.Block) ([]eth.Data, error) {
@@ -221,4 +202,41 @@ func (c *CelestiaRollup) DataFromEVMTransactions(block types.Block) ([]eth.Data,
 	}
 
 	return out, nil
+}
+
+func (c *CelestiaRollup) craftTx(candidate eth.TxCandidate) (*types.Transaction, error) {
+	c.Log.Debug("crafting Transaction", "blobs", len(candidate.Blobs), "calldata_size", len(candidate.TxData))
+
+	tip, err := c.ethClients.SuggestGasTipCap(c.driverCtx)
+	if err != nil {
+		c.Log.Error(fmt.Errorf("failed to fetch the suggested gas tip cap: %w", err).Error())
+		return nil, err
+	}
+
+	header, err := c.ethClients.HeaderByNumber(c.driverCtx, nil)
+	if err != nil {
+		c.Log.Error(fmt.Errorf("failed to fetch the suggested base fee: %w", err).Error())
+		return nil, err
+	}
+	baseFee := header.BaseFee
+	gasFeeCap := calcGasFeeCap(baseFee, tip)
+
+	txMessage := &types.DynamicFeeTx{
+		ChainID:   c.CelestiaConfig.L1ChainID,
+		To:        candidate.To,
+		GasTipCap: tip,
+		GasFeeCap: gasFeeCap,
+		Value:     candidate.Value,
+		Data:      candidate.TxData,
+		Gas:       candidate.GasLimit,
+	}
+
+	return types.NewTx(txMessage), err
+}
+
+func calcGasFeeCap(baseFee, gasTipCap *big.Int) *big.Int {
+	return new(big.Int).Add(
+		gasTipCap,
+		new(big.Int).Mul(baseFee, big.NewInt(2)),
+	)
 }
