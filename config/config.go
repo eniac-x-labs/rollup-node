@@ -3,9 +3,9 @@ package config
 import (
 	"errors"
 
+	"github.com/eniac-x-labs/anytrustDA/das"
+	"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
-	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/das"
-	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/util/signature"
 	//"github.com/eniac-x-labs/anytrustDA/das"
 	//"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"

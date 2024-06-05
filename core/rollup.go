@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/eniac-x-labs/anytrustDA/das"
 	_common "github.com/eniac-x-labs/rollup-node/common"
 	"github.com/eniac-x-labs/rollup-node/common/cliapp"
 	_errors "github.com/eniac-x-labs/rollup-node/common/errors"
 	"github.com/eniac-x-labs/rollup-node/config"
 	_log "github.com/eniac-x-labs/rollup-node/log"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
-	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/das"
 	"github.com/eniac-x-labs/rollup-node/x/celestia"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
 	"github.com/eniac-x-labs/rollup-node/x/eip4844"
@@ -211,19 +211,14 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 	return nil, _errors.UnknownDATypeErr
 }
 
-func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) ([]byte, error) {
+func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]byte, error) {
 	switch daType {
 	case _common.AnytrustType:
 		if r.anytrustDA == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		if len(args) != 1 {
-			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "anytrustDA", "got", len(args), "expected", 1)
-			return nil, _errors.WrongArgsNumberErr
-		}
-
-		hashHex := args[0].(string)
+		hashHex := args.(string)
 		res, err := r.anytrustDA.ReadDA(r.ctx, hashHex)
 		if err != nil {
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "hashHex", hashHex, "da-type", "anytrustDA")
@@ -237,11 +232,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "celestiaDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		if len(args) != 1 {
-			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "celestiaDA", "got", len(args), "expected", 1)
-			return nil, _errors.WrongArgsNumberErr
-		}
-		reqTxHashStr := args[0].(string)
+		reqTxHashStr := args.(string)
 		log.Debug("request get from celestiaDA", "reqTxHashStr", reqTxHashStr)
 
 		res, err := r.celestiaDA.DataFromEVMTransactions(reqTxHashStr)
@@ -258,11 +249,11 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eigenDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		if len(args) != 1 {
-			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "eigenDA", "got", len(args), "expected", 1)
-			return nil, _errors.WrongArgsNumberErr
+		reqIDBase64, ok := args.(string)
+		if !ok {
+			log.Error("args[0] is not string type")
+			return nil, _errors.WrongArgTypeErr
 		}
-		reqIDBase64 := args[0].(string)
 		log.Debug("request get from eigenDA", "reqID", reqIDBase64)
 
 		reqIDByte, err := base64.StdEncoding.DecodeString(reqIDBase64)
@@ -289,11 +280,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eip4844")
 			return nil, _errors.DANotPreparedErr
 		}
-		if len(args) != 1 {
-			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "eip4844", "got", len(args), "expected", 1)
-			return nil, _errors.WrongArgsNumberErr
-		}
-		reqTxHashStr := args[0].(string)
+		reqTxHashStr := args.(string)
 		log.Debug("request get from eip4844", "reqTxHashStr", reqTxHashStr)
 
 		res, err := r.eip4844.DataFromEVMTransactions(r.ctx, reqTxHashStr)
@@ -309,11 +296,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) (
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		if len(args) != 1 {
-			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "nearDA", "got", len(args), "expected", 1)
-			return nil, _errors.WrongArgsNumberErr
-		}
-		frameRefBytes := args[0].([]byte)
+		frameRefBytes := args.([]byte)
 		if len(frameRefBytes) < 32 {
 			log.Error("nearda arg length incorrect", "length", len(frameRefBytes), "want", "larger than 32")
 			return nil, errors.New(fmt.Sprintf("nearda arg length incorrect, expected: larger than 32, got: %d", len(frameRefBytes)))

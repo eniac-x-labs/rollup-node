@@ -17,7 +17,7 @@ type RollupRequest struct {
 
 type RetrieveRequest struct {
 	DAType int
-	Args   []interface{}
+	Args   interface{}
 }
 type DRNGRpcInterface interface {
 	Rollup(req RollupRequest, reply *[]interface{}) error
@@ -29,7 +29,7 @@ type RollupRpcServer struct {
 }
 
 func NewAndStartRollupRpcServer(ctx context.Context, wg sync.WaitGroup, address string, rollup _core.RollupInter) {
-	defer wg.Done()
+	//defer wg.Done()
 	if err := rpc.Register(&RollupRpcServer{
 		rollup,
 	}); err != nil {

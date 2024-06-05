@@ -8,6 +8,7 @@ const (
 	WrongArgsNumberErrMsg = "Number of args is wrong"
 	RollupFailedMsg       = "Rollup into DA failed"
 	GetFromDAErrMsg       = "Get from DA failed"
+	WrongArgTypeErrMsg    = "Arg with wrong type"
 )
 
 var (
@@ -16,4 +17,5 @@ var (
 	WrongArgsNumberErr = errors.New(WrongArgsNumberErrMsg)
 	RollupFailedErr    = errors.New(RollupFailedMsg)
 	GetFromDAErr       = errors.New(GetFromDAErrMsg)
+	WrongArgTypeErr    = errors.New(WrongArgTypeErrMsg)
 )
