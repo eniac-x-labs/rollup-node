@@ -26,7 +26,7 @@ func main() {
 	flag.StringVar(&apiAddress, "apiAddress", "", "listen address for web server")
 	flag.Parse()
 
-	rollupModule, err := _core.NewRollupModule(ctx, _config.NewRollupConfig())
+	rollupModule, err := _core.NewRollupModule_wwq(ctx, _config.NewRollupConfig())
 	if err != nil {
 		log.Error("NewRollupModule failed", "err", err)
 		return

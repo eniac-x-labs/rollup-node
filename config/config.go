@@ -3,6 +3,9 @@ package config
 import (
 	"errors"
 
+	"github.com/eniac-x-labs/rollup-node/x/anytrust"
+	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/das"
+	"github.com/eniac-x-labs/rollup-node/x/anytrust/anytrustDA/util/signature"
 	//"github.com/eniac-x-labs/anytrustDA/das"
 	//"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
@@ -33,7 +36,7 @@ func NewConfig(ctx *cli.Context) (*CLIConfig, error) {
 }
 
 type RollupConfig struct {
-	AnytrustDAConfig *AnytrustConfig
+	AnytrustDAConfig *anytrust.AnytrustConfig //*AnytrustConfig
 	//CelestiaDAConfig
 	EigenDAConfig *eigenda.EigenDAConfig
 	//Eip4844Config
@@ -41,9 +44,9 @@ type RollupConfig struct {
 }
 
 type AnytrustConfig struct {
-	//DAConfig          *das.DataAvailabilityConfig
-	//DataSigner        signature.DataSignerFunc
-	//DataRetentionTime uint64 // second
+	DAConfig          *das.DataAvailabilityConfig
+	DataSigner        signature.DataSignerFunc
+	DataRetentionTime uint64 // second
 }
 
 var (
@@ -66,7 +69,8 @@ const (
 
 func NewRollupConfig() *RollupConfig {
 	//anytrustDAConf := &das.DataAvailabilityConfig{}
-	anytrustDAConf := &struct{}{}
+	anytrustDAConf := &anytrust.AnytrustConfig{}
+	//anytrustDAConf := &struct{}{}
 	if err := PrepareConfig(AnytrustConfigDir, AnytrustConfigFile, anytrustDAConf, AnytrustPrefix, []string{}); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "AnytrustDA")
 	}
@@ -81,12 +85,13 @@ func NewRollupConfig() *RollupConfig {
 		log.Error("PrepareConfig failed", "da-type", "NearDA")
 	}
 	return &RollupConfig{
-		AnytrustDAConfig: &AnytrustConfig{
-			//DAConfig:          anytrustDAConf,
-			//DataRetentionTime: uint64(anytrustDAConf.RestAggregator.SyncToStorage.RetentionPeriod.Seconds()),
-		},
-		EigenDAConfig: eigendaConf,
-		NearDAConfig:  neardaConf,
+		//AnytrustDAConfig: &AnytrustConfig{
+		//	DAConfig:          anytrustDAConf,
+		//	DataRetentionTime: uint64(anytrustDAConf.RestAggregator.SyncToStorage.RetentionPeriod.Seconds()),
+		//},
+		AnytrustDAConfig: anytrustDAConf,
+		EigenDAConfig:    eigendaConf,
+		NearDAConfig:     neardaConf,
 	}
 }
 
