@@ -3,8 +3,8 @@ package config
 import (
 	"errors"
 
-	"github.com/eniac-x-labs/anytrustDA/das"
-	"github.com/eniac-x-labs/anytrustDA/util/signature"
+	//"github.com/eniac-x-labs/anytrustDA/das"
+	//"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
 	"github.com/eniac-x-labs/rollup-node/x/nearda"
 	"github.com/spf13/viper"
@@ -41,9 +41,9 @@ type RollupConfig struct {
 }
 
 type AnytrustConfig struct {
-	DAConfig          *das.DataAvailabilityConfig
-	DataSigner        signature.DataSignerFunc
-	DataRetentionTime uint64 // second
+	//DAConfig          *das.DataAvailabilityConfig
+	//DataSigner        signature.DataSignerFunc
+	//DataRetentionTime uint64 // second
 }
 
 var (
@@ -65,7 +65,8 @@ const (
 )
 
 func NewRollupConfig() *RollupConfig {
-	anytrustDAConf := &das.DataAvailabilityConfig{}
+	//anytrustDAConf := &das.DataAvailabilityConfig{}
+	anytrustDAConf := &struct{}{}
 	if err := PrepareConfig(AnytrustConfigDir, AnytrustConfigFile, anytrustDAConf, AnytrustPrefix, []string{}); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "AnytrustDA")
 	}
@@ -81,8 +82,8 @@ func NewRollupConfig() *RollupConfig {
 	}
 	return &RollupConfig{
 		AnytrustDAConfig: &AnytrustConfig{
-			DAConfig:          anytrustDAConf,
-			DataRetentionTime: uint64(anytrustDAConf.RestAggregator.SyncToStorage.RetentionPeriod.Seconds()),
+			//DAConfig:          anytrustDAConf,
+			//DataRetentionTime: uint64(anytrustDAConf.RestAggregator.SyncToStorage.RetentionPeriod.Seconds()),
 		},
 		EigenDAConfig: eigendaConf,
 		NearDAConfig:  neardaConf,

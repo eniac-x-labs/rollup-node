@@ -18,11 +18,9 @@ import (
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
 	"github.com/eniac-x-labs/rollup-node/x/eip4844"
 	"github.com/eniac-x-labs/rollup-node/x/nearda"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 
 	_config "github.com/eniac-x-labs/rollup-node/config"
-	//"github.com/eniac-x-labs/anytrustDA/das"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -93,7 +91,8 @@ func NewRollupModule_hk(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (
 
 func NewRollupModule_wwq(ctx context.Context, conf *_config.RollupConfig) (RollupInter, error) {
 
-	anytrustDA, err := anytrust.NewAnytrustDA(ctx, conf.AnytrustDAConfig.DAConfig, conf.AnytrustDAConfig.DataSigner)
+	//anytrustDA, err := anytrust.NewAnytrustDA(ctx, conf.AnytrustDAConfig.DAConfig, conf.AnytrustDAConfig.DataSigner)
+	anytrustDA, err := anytrust.NewAnytrustDA()
 	if err != nil {
 		log.Error("NewAnytrustDA failed", "err", err)
 	}
@@ -124,20 +123,20 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 	res := make([]interface{}, 0)
 	switch daType {
 	case _common.AnytrustType:
-		if r.anytrustDA == nil {
-			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
-			return nil, _errors.DANotPreparedErr
-		}
-
-		daCert, err := r.anytrustDA.Store(r.ctx, data, r.RollupConfig.AnytrustDAConfig.DataRetentionTime, nil)
-		if err != nil {
-			log.Error(_errors.RollupFailedMsg, "da-type", "anytrustDA", "err", err)
-			return nil, err
-		}
-		log.Debug("eigenDA stored data", "daCert.DataHash", fmt.Sprintf("%x", daCert.DataHash))
-
-		res = append(res, daCert)
-		return res, nil
+		//if r.anytrustDA == nil {
+		//	log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
+		//	return nil, _errors.DANotPreparedErr
+		//}
+		//
+		//daCert, err := r.anytrustDA.Store(r.ctx, data, r.RollupConfig.AnytrustDAConfig.DataRetentionTime, nil)
+		//if err != nil {
+		//	log.Error(_errors.RollupFailedMsg, "da-type", "anytrustDA", "err", err)
+		//	return nil, err
+		//}
+		//log.Debug("eigenDA stored data", "daCert.DataHash", fmt.Sprintf("%x", daCert.DataHash))
+		//
+		//res = append(res, daCert)
+		//return res, nil
 
 	case CelestiaType:
 		r.celestiaDA.SendTransaction(data)
@@ -183,25 +182,25 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 func (r *RollupModule) RetrieveFromDAWithType(daType int, args ...interface{}) ([]byte, error) {
 	switch daType {
 	case _common.AnytrustType:
-		if r.anytrustDA == nil {
-			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
-			return nil, _errors.DANotPreparedErr
-		}
-		if len(args) != 1 {
-			log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "anytrustDA", "got", len(args), "expected", 1)
-			return nil, _errors.WrongArgsNumberErr
-		}
-
-		hashHex := args[0].(string)
-		r.anytrustDA.DataAvailabilityServiceReader.String()
-		res, err := r.anytrustDA.GetByHash(r.ctx, common.HexToHash(hashHex))
-		if err != nil {
-			log.Error(_errors.GetFromDAErrMsg, "err", err, "hashHex", hashHex, "da-type", "anytrustDA")
-			return nil, err
-		}
-
-		log.Debug("get from anytrustDA successfully", "hashHex", hashHex)
-		return res, nil
+		//if r.anytrustDA == nil {
+		//	log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
+		//	return nil, _errors.DANotPreparedErr
+		//}
+		//if len(args) != 1 {
+		//	log.Error(_errors.WrongArgsNumberErrMsg, "da-type", "anytrustDA", "got", len(args), "expected", 1)
+		//	return nil, _errors.WrongArgsNumberErr
+		//}
+		//
+		//hashHex := args[0].(string)
+		//r.anytrustDA.DataAvailabilityServiceReader.String()
+		//res, err := r.anytrustDA.GetByHash(r.ctx, common.HexToHash(hashHex))
+		//if err != nil {
+		//	log.Error(_errors.GetFromDAErrMsg, "err", err, "hashHex", hashHex, "da-type", "anytrustDA")
+		//	return nil, err
+		//}
+		//
+		//log.Debug("get from anytrustDA successfully", "hashHex", hashHex)
+		//return res, nil
 	case _common.CelestiaType:
 	case _common.EigenDAType:
 		if r.eigenDA == nil {
