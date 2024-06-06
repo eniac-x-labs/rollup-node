@@ -27,3 +27,4 @@ go.work
 # Binaries for programs and plugins
 rollupNode
 rollup-node
+/cmd/cmd

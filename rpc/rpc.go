@@ -4,9 +4,7 @@ import (
 	"context"
 	"net"
 	"net/rpc"
-	"sync"
 
-	_core "github.com/eniac-x-labs/rollup-node/core"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -19,17 +17,12 @@ type RetrieveRequest struct {
 	DAType int
 	Args   interface{}
 }
-type DRNGRpcInterface interface {
-	Rollup(req RollupRequest, reply *[]interface{}) error
-	Retrieve(req RetrieveRequest, reply *[]byte) error
-}
 
 type RollupRpcServer struct {
-	_core.RollupInter
+	RollupInter
 }
 
-func NewAndStartRollupRpcServer(ctx context.Context, wg sync.WaitGroup, address string, rollup _core.RollupInter) {
-	//defer wg.Done()
+func NewAndStartRollupRpcServer(ctx context.Context, address string, rollup RollupInter) {
 	if err := rpc.Register(&RollupRpcServer{
 		rollup,
 	}); err != nil {
@@ -49,6 +42,7 @@ func NewAndStartRollupRpcServer(ctx context.Context, wg sync.WaitGroup, address 
 		select {
 		case <-ctx.Done():
 			listener.Close()
+			log.Info("rollup rpc listener closed successfully")
 			return
 		default:
 			conn, err := listener.Accept()

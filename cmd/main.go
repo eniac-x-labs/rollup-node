@@ -28,7 +28,7 @@ func main() {
 			Name:        "rollup-node",
 			Flags:       flags.Flags,
 			Description: "Runs the rollup node service",
-			Action:      cliapp.LifecycleCmd(core.NewRollupModule_hk),
+			Action:      cliapp.LifecycleCmd(core.RunRollupModuleForCLI),
 		},
 	}
 

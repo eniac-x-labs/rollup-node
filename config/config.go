@@ -68,27 +68,21 @@ const (
 )
 
 func NewRollupConfig() *RollupConfig {
-	//anytrustDAConf := &das.DataAvailabilityConfig{}
 	anytrustDAConf := &anytrust.AnytrustConfig{}
-	//anytrustDAConf := &struct{}{}
-	if err := PrepareConfig(AnytrustConfigDir, AnytrustConfigFile, anytrustDAConf, AnytrustPrefix, []string{}); err != nil {
+	if err := PrepareConfig(AnytrustConfigDir, AnytrustConfigFile, anytrustDAConf, AnytrustPrefix, anytrust.AnytrustDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "AnytrustDA")
 	}
 
 	eigendaConf := &eigenda.EigenDAConfig{}
-	if err := PrepareConfig(EigenDAConfigDir, EigenDAConfigFile, eigendaConf, EigenDAPrefix, []string{}); err != nil {
+	if err := PrepareConfig(EigenDAConfigDir, EigenDAConfigFile, eigendaConf, EigenDAPrefix, eigenda.EigenDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "EigenDA")
 	}
 
 	neardaConf := &nearda.NearDAConfig{}
-	if err := PrepareConfig(NearDAConfigDir, NearDAConfigFile, neardaConf, NearDAPrefix, []string{}); err != nil {
+	if err := PrepareConfig(NearDAConfigDir, NearDAConfigFile, neardaConf, NearDAPrefix, nearda.NearDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "NearDA")
 	}
 	return &RollupConfig{
-		//AnytrustDAConfig: &AnytrustConfig{
-		//	DAConfig:          anytrustDAConf,
-		//	DataRetentionTime: uint64(anytrustDAConf.RestAggregator.SyncToStorage.RetentionPeriod.Seconds()),
-		//},
 		AnytrustDAConfig: anytrustDAConf,
 		EigenDAConfig:    eigendaConf,
 		NearDAConfig:     neardaConf,

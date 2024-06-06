@@ -15,6 +15,7 @@ import (
 	_errors "github.com/eniac-x-labs/rollup-node/common/errors"
 	"github.com/eniac-x-labs/rollup-node/config"
 	_log "github.com/eniac-x-labs/rollup-node/log"
+	_rpc "github.com/eniac-x-labs/rollup-node/rpc"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
 	"github.com/eniac-x-labs/rollup-node/x/celestia"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
@@ -34,7 +35,7 @@ type RollupModule struct {
 
 	RollupConfig *_config.RollupConfig
 
-	anytrustDA anytrust.IAnytrustDA //*anytrust.AnytrustDA
+	anytrustDA anytrust.IAnytrustDA
 	celestiaDA *celestia.CelestiaRollup
 	eigenDA    eigenda.IEigenDA
 	eip4844    *eip4844.Eip4844Rollup
@@ -62,47 +63,37 @@ func (r *RollupModule) Stopped() bool {
 	return r.stopped.Load()
 }
 
-func NewRollupModule_hk(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (cliapp.Lifecycle, error) {
-
-	cfg, err := config.NewConfig(cliCtx)
+func RunRollupModuleForCLI(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (cliapp.Lifecycle, error) {
+	rollupModule, err := NewRollupModule_2(cliCtx)
 	if err != nil {
+		log.Error("Run Rollup Module failed", "err", err)
 		return nil, err
 	}
 
-	logger := _log.NewLogger(_log.AppOut(cliCtx), cfg.LogConfig).New("rollup-node")
-	_log.SetGlobalLogHandler(logger.GetHandler())
-
-	celestiaDa, err := celestia.NewCelestiaRollup(cliCtx, logger)
-	if err != nil {
-
-	}
-	eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
-	if err != nil {
-
+	rpcAddress := cliCtx.String("rpcAddress")
+	if len(rpcAddress) != 0 {
+		go _rpc.NewAndStartRollupRpcServer(cliCtx.Context, rpcAddress, rollupModule)
 	}
 
-	return &RollupModule{
-		anytrustDA: nil,
-		celestiaDA: celestiaDa,
-		eigenDA:    nil,
-		eip4844:    eip4844,
-		nearDA:     nil,
-		Log:        logger,
-	}, nil
+	return rollupModule, nil
 }
 
-func NewRollupModule_wwq(ctx context.Context, conf *_config.RollupConfig) (RollupInter, error) {
-
-	//anytrustDA, err := anytrust.NewAnytrustDA(ctx, conf.AnytrustDAConfig.DAConfig, conf.AnytrustDAConfig.DataSigner)
+func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) (_rpc.RollupInter, error) {
 	anytrustDA, err := anytrust.NewAnytrustDA(conf.AnytrustDAConfig)
 	if err != nil {
 		log.Error("NewAnytrustDA failed", "err", err)
 	}
 
+	//celestiaDA, err := celestia.NewCelestiaRollup()
 	eigenda, err := eigenda.NewEigenDAClient(conf.EigenDAConfig)
 	if err != nil {
 		log.Error("NewEigenDA failed", "err", err)
 	}
+
+	//eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
+	//if err != nil {
+	//
+	//}
 
 	nearDA, err := nearda.NewNearDAClient(conf.NearDAConfig)
 	if err != nil {
@@ -116,9 +107,59 @@ func NewRollupModule_wwq(ctx context.Context, conf *_config.RollupConfig) (Rollu
 		anytrustDA: anytrustDA,
 		//celestiaDA: nil,
 		eigenDA: eigenda,
-		//eip4844:    nil,
+		//eip4844: eip4844,
 		nearDA: nearDA,
 	}, nil
+}
+
+func NewRollupModule_2(cliCtx *cli.Context) (*RollupModule, error) {
+	cfg, err := config.NewConfig(cliCtx) // celestia & eip4844
+	if err != nil {
+		return nil, err
+	}
+
+	logger := _log.NewLogger(_log.AppOut(cliCtx), cfg.LogConfig).New("rollup-node")
+	_log.SetGlobalLogHandler(logger.GetHandler())
+
+	celestiaDA, err := celestia.NewCelestiaRollup(cliCtx, logger)
+	if err != nil {
+		log.Error("NewCelestiaRollup failed", "err", err)
+		return nil, err
+	}
+	eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
+	if err != nil {
+		log.Error("NewEip4844Rollup failed", "err", err)
+		return nil, err
+	}
+
+	conf := _config.NewRollupConfig() // config for anytrust & eigenda & nearda
+	anytrustDA, err := anytrust.NewAnytrustDA(conf.AnytrustDAConfig)
+	if err != nil {
+		log.Error("NewAnytrustRollup failed", "err", err)
+		return nil, err
+	}
+
+	eigenDA, err := eigenda.NewEigenDAClient(conf.EigenDAConfig)
+	if err != nil {
+		log.Error("NewEigenRollup failed", "err", err)
+		return nil, err
+	}
+
+	nearDA, err := nearda.NewNearDAClient(conf.NearDAConfig)
+	if err != nil {
+		log.Error("NewNearRollup failed", "err", err)
+		return nil, err
+	}
+
+	return &RollupModule{
+		anytrustDA: anytrustDA,
+		celestiaDA: celestiaDA,
+		eigenDA:    eigenDA,
+		eip4844:    eip4844,
+		nearDA:     nearDA,
+		Log:        logger,
+	}, nil
+
 }
 
 func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, error) {
@@ -129,8 +170,6 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		//var daCert *arbstate.DataAvailabilityCertificate
-		//daCert, err := r.anytrustDA.Store(r.ctx, data, r.RollupConfig.AnytrustDAConfig.DataRetentionTime, nil)
 		daCert, err := r.anytrustDA.WriteDA(r.ctx, data, r.RollupConfig.AnytrustDAConfig.DataRetentionTime)
 		if err != nil {
 			log.Error(_errors.RollupFailedMsg, "da-type", "anytrustDA", "err", err)

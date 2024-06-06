@@ -9,14 +9,6 @@ type NearDAClient struct {
 	*near.Config
 }
 
-type NearDAConfig struct {
-	Account  string `toml:"account"`
-	Contract string `toml:"contract"`
-	Key      string `toml:"key"`
-	Network  string `toml:"network"` // nearDA only support "Mainnet", "Testnet", "Localnet"
-	Ns       uint32 `toml:"ns"`
-}
-
 type INearDA interface {
 	Store(data []byte) ([]byte, error)
 	GetFromDA(frameRefBytes []byte, txIndex uint32) ([]byte, error)

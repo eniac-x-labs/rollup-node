@@ -1,0 +1,8 @@
+l1Rpc = ""
+privateKey = ""
+l1ChainID = ""
+useBlobs = false
+l1BeaconAddr = ""
+shouldFetchAllSidecars = false
+batchInboxAddress = ""
+batcherAddr = ""
