@@ -7,7 +7,6 @@ import (
 	"github.com/eniac-x-labs/rollup-node/api"
 	"os"
 	"os/signal"
-	"sync"
 
 	_config "github.com/eniac-x-labs/rollup-node/config"
 	_core "github.com/eniac-x-labs/rollup-node/core"
@@ -28,17 +27,17 @@ func main() {
 	flag.StringVar(&apiAddress, "apiAddress", "", "listen address for web server")
 	flag.Parse()
 
-	rollupModule, err := _core.NewRollupModule_wwq(ctx, _config.NewRollupConfig())
+	rollupModule, err := _core.NewRollupModuleWithConfig(ctx, _config.NewRollupConfig())
 	if err != nil {
 		log.Error("NewRollupModule failed", "err", err)
 		return
 	}
 
 	// start rpc for sdk
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 	if len(rpcAddress) != 0 {
 		//wg.Add(1)
-		go _rpc.NewAndStartRollupRpcServer(ctx, wg, rpcAddress, rollupModule)
+		go _rpc.NewAndStartRollupRpcServer(ctx, rpcAddress, rollupModule)
 	}
 
 	err = api.NewApi(ctx, logger, apiAddress, rollupModule)
@@ -52,6 +51,7 @@ func main() {
 	<-quit
 	fmt.Println("Shutting down server...")
 	cancel()
+
 	//wg.Wait()
 	fmt.Println("Server gracefully stopped")
 }

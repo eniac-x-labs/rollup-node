@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/eniac-x-labs/rollup-node/client"
-	"github.com/eniac-x-labs/rollup-node/config"
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
 	"github.com/eniac-x-labs/rollup-node/log"
 	"github.com/eniac-x-labs/rollup-node/signer"
@@ -26,7 +26,7 @@ var ErrAlreadyStopped = errors.New("already stopped")
 
 type CelestiaRollup struct {
 	CelestiaConfig CLIConfig
-	Config         *config.CLIConfig
+	Config         *cli_config.CLIConfig
 	Log            log.Logger
 	DAClient       *DAClient
 	ethClients     client.EthClient
@@ -54,17 +54,15 @@ func (c *CelestiaRollup) Stopped() bool {
 }
 
 func NewCelestiaRollup(cliCtx *cli.Context, logger log.Logger) (*CelestiaRollup, error) {
-
-	cfg, err := config.NewConfig(cliCtx)
+	cfg, err := cli_config.NewConfig(cliCtx)
 	if err != nil {
 		return nil, err
 	}
-	CelestiaConfig := ReadCLIConfig(cliCtx)
 
-	return CelestiaServiceFromCLIConfig(cliCtx.Context, cfg, CelestiaConfig, logger)
+	return CelestiaServiceFromCLIConfig(cliCtx.Context, cfg, ReadCLIConfig(cliCtx), logger)
 }
 
-func CelestiaServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, celestiaConfig CLIConfig, logger log.Logger) (*CelestiaRollup, error) {
+func CelestiaServiceFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, celestiaConfig CLIConfig, logger log.Logger) (*CelestiaRollup, error) {
 	var c CelestiaRollup
 	if err := c.initFromCLIConfig(ctx, cfg, celestiaConfig, logger); err != nil {
 		return nil, errors.Join(err, c.Stop(ctx)) // try to clean up our failed initialization attempt
@@ -72,7 +70,20 @@ func CelestiaServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, ce
 	return &c, nil
 }
 
-func (c *CelestiaRollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, celestiaConfig CLIConfig, logger log.Logger) error {
+func NewCelestiaRollupWithConfig(ctx context.Context, cfg *cli_config.CLIConfig, config *CelestiaConfig) (*CelestiaRollup, error) {
+	if cfg == nil || config == nil {
+		log.Error("celestia config is nil pointer")
+		return nil, nil
+	}
+
+	var c CelestiaRollup
+	if err := c.initFromCLIConfig(ctx, cfg, config.celestiaConfig, config.logger); err != nil {
+		return nil, errors.Join(err, c.Stop(ctx)) // try to clean up our failed initialization attempt
+	}
+	return &c, nil
+}
+
+func (c *CelestiaRollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, celestiaConfig CLIConfig, logger log.Logger) error {
 
 	c.Config = cfg
 	c.CelestiaConfig = celestiaConfig

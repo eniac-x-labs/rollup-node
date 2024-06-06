@@ -1,0 +1,24 @@
+l1Rpc = ""
+privateKey = ""
+l1ChainID = ""
+useBlobs = false
+l1BeaconAddr = ""
+shouldFetchAllSidecars = false
+
+batchInboxAddress = ""
+batcherAddr = ""
+
+# BlockTime CLI Config
+blockTime = 2
+
+# Metrics CLI Config
+enable = false
+listenAddr = ""
+listenPort = 0
+
+# Log CLI Config
+level = 4
+color = true
+formatType = "terminal"
+
+l1ChainIdFlagName = 0
