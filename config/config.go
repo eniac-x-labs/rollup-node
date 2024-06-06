@@ -56,6 +56,8 @@ var (
 	EigenDAConfigFile  = "eigenda"
 	NearDAConfigDir    = defaultConfigDir
 	NearDAConfigFile   = "nearda"
+	ApiConfigDir       = defaultConfigDir
+	ApiConfigFile      = "api"
 )
 
 const (
@@ -65,6 +67,7 @@ const (
 	AnytrustPrefix   = "anytrust"
 	EigenDAPrefix    = "eigenda"
 	NearDAPrefix     = "nearda"
+	ApiPrefix        = "api"
 )
 
 func NewRollupConfig() *RollupConfig {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/eniac-x-labs/rollup-node/api"
 	"os"
 	"os/signal"
 	"sync"
@@ -16,7 +17,8 @@ import (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
-	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stdout, log.LevelDebug, true)))
+	logger := log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stdout, log.LevelDebug, true))
+	log.SetDefault(logger)
 
 	var (
 		rpcAddress string
@@ -37,6 +39,12 @@ func main() {
 	if len(rpcAddress) != 0 {
 		//wg.Add(1)
 		go _rpc.NewAndStartRollupRpcServer(ctx, wg, rpcAddress, rollupModule)
+	}
+
+	err = api.NewApi(ctx, logger, apiAddress, rollupModule)
+	if err != nil {
+		log.Error("NewApi failed", "err", err)
+		return
 	}
 
 	quit := make(chan os.Signal, 1)
