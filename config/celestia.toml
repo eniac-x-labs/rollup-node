@@ -1,0 +1,23 @@
+l1Rpc = ""
+l1ChainID = ""
+privateKey = ""
+daRpc = ""
+authToken = ""
+namespace = ""
+ethFallbackDisabled = false
+
+batchInboxAddress = ""
+batcherAddr = ""
+
+# BlockTime CLI Config
+blockTime = 2
+
+# Metrics CLI Config
+enable = false
+listenAddr = ""
+listenPort = 0
+
+# Log CLI Config
+level = 4
+color = true
+formatType = "terminal"

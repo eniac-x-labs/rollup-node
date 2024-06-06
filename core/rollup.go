@@ -13,7 +13,7 @@ import (
 	_common "github.com/eniac-x-labs/rollup-node/common"
 	"github.com/eniac-x-labs/rollup-node/common/cliapp"
 	_errors "github.com/eniac-x-labs/rollup-node/common/errors"
-	"github.com/eniac-x-labs/rollup-node/config"
+	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	_log "github.com/eniac-x-labs/rollup-node/log"
 	_rpc "github.com/eniac-x-labs/rollup-node/rpc"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
@@ -84,16 +84,20 @@ func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) 
 		log.Error("NewAnytrustDA failed", "err", err)
 	}
 
-	//celestiaDA, err := celestia.NewCelestiaRollup()
-	eigenda, err := eigenda.NewEigenDAClient(conf.EigenDAConfig)
+	celestiaDA, err := celestia.NewCelestiaRollupWithConfig(ctx, conf.CelestiaCLICfg, conf.CelestiaDAConfig)
+	if err != nil {
+		log.Error("NewCelestiaRollupWithConfig failed", "err", err)
+	}
+
+	eigenDA, err := eigenda.NewEigenDAClient(conf.EigenDAConfig)
 	if err != nil {
 		log.Error("NewEigenDA failed", "err", err)
 	}
 
-	//eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
-	//if err != nil {
-	//
-	//}
+	eip4844, err := eip4844.NewEip4844WithConfig(ctx, conf.Eip4844CLICfg, conf.Eip4844Config)
+	if err != nil {
+		log.Error("NewEip4844WithConfig failed", "err", err)
+	}
 
 	nearDA, err := nearda.NewNearDAClient(conf.NearDAConfig)
 	if err != nil {
@@ -105,15 +109,16 @@ func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) 
 		RollupConfig: conf,
 
 		anytrustDA: anytrustDA,
-		//celestiaDA: nil,
-		eigenDA: eigenda,
-		//eip4844: eip4844,
-		nearDA: nearDA,
+		celestiaDA: celestiaDA,
+		eigenDA:    eigenDA,
+		eip4844:    eip4844,
+		nearDA:     nearDA,
 	}, nil
 }
 
+// for cli
 func NewRollupModule_2(cliCtx *cli.Context) (*RollupModule, error) {
-	cfg, err := config.NewConfig(cliCtx) // celestia & eip4844
+	cfg, err := cli_config.NewConfig(cliCtx) // celestia & eip4844
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +131,7 @@ func NewRollupModule_2(cliCtx *cli.Context) (*RollupModule, error) {
 		log.Error("NewCelestiaRollup failed", "err", err)
 		return nil, err
 	}
+
 	eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
 	if err != nil {
 		log.Error("NewEip4844Rollup failed", "err", err)

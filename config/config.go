@@ -5,42 +5,27 @@ import (
 
 	"github.com/eniac-x-labs/anytrustDA/das"
 	"github.com/eniac-x-labs/anytrustDA/util/signature"
+	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
+	"github.com/eniac-x-labs/rollup-node/x/celestia"
+	"github.com/eniac-x-labs/rollup-node/x/eip4844"
+
+	"github.com/eniac-x-labs/rollup-node/log"
 	//"github.com/eniac-x-labs/anytrustDA/das"
 	//"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
 	"github.com/eniac-x-labs/rollup-node/x/nearda"
 	"github.com/spf13/viper"
-	"github.com/urfave/cli/v2"
-
-	"github.com/eniac-x-labs/rollup-node/log"
-	"github.com/eniac-x-labs/rollup-node/metrics"
 )
-
-var defaultBlockTime = uint64(2)
-
-type CLIConfig struct {
-	BlockTime     uint64 `json:"block_time"`
-	MetricsConfig metrics.CLIConfig
-	LogConfig     log.CLIConfig
-}
-
-// NewConfig parses the Config from the provided flags or environment variables.
-func NewConfig(ctx *cli.Context) (*CLIConfig, error) {
-
-	return &CLIConfig{
-		BlockTime:     defaultBlockTime,
-		MetricsConfig: metrics.ReadCLIConfig(ctx),
-		LogConfig:     log.ReadCLIConfig(ctx),
-	}, nil
-}
 
 type RollupConfig struct {
 	AnytrustDAConfig *anytrust.AnytrustConfig //*AnytrustConfig
-	//CelestiaDAConfig
-	EigenDAConfig *eigenda.EigenDAConfig
-	//Eip4844Config
-	NearDAConfig *nearda.NearDAConfig
+	CelestiaDAConfig *celestia.CelestiaConfig
+	CelestiaCLICfg   *cli_config.CLIConfig
+	EigenDAConfig    *eigenda.EigenDAConfig
+	Eip4844Config    *eip4844.Eip4844Config
+	Eip4844CLICfg    *cli_config.CLIConfig
+	NearDAConfig     *nearda.NearDAConfig
 }
 
 type AnytrustConfig struct {
@@ -52,8 +37,12 @@ type AnytrustConfig struct {
 var (
 	AnytrustConfigDir  = defaultConfigDir
 	AnytrustConfigFile = "anyrtust"
+	CelestiaConfigDir  = defaultConfigDir
+	CelestiaConfigFile = "celestia"
 	EigenDAConfigDir   = defaultConfigDir
 	EigenDAConfigFile  = "eigenda"
+	Eip4844ConfigDir   = defaultConfigDir
+	Eip4844ConfigFile  = "eip4844"
 	NearDAConfigDir    = defaultConfigDir
 	NearDAConfigFile   = "nearda"
 )
@@ -63,28 +52,63 @@ const (
 	ConfigType       = "toml"
 	EnvVarPrefix     = "ROLLUP"
 	AnytrustPrefix   = "anytrust"
+	CelestiaPrefix   = "celestia"
 	EigenDAPrefix    = "eigenda"
+	Eip4844Prefix    = "eip4844"
 	NearDAPrefix     = "nearda"
 )
 
 func NewRollupConfig() *RollupConfig {
+	// Anytrust
 	anytrustDAConf := &anytrust.AnytrustConfig{}
 	if err := PrepareConfig(AnytrustConfigDir, AnytrustConfigFile, anytrustDAConf, AnytrustPrefix, anytrust.AnytrustDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "AnytrustDA")
 	}
 
+	// Celestia
+	var celestiaConfig *celestia.CelestiaConfig
+	celestiaParseConf := &celestia.ParseCelestiaConfig{}
+	if err := PrepareConfig(CelestiaConfigDir, CelestiaConfigFile, celestiaParseConf, CelestiaPrefix, []string{}); err != nil {
+		log.Error("PrepareConfig failed", "da-type", "Celestia")
+	} else {
+		celestiaConfig, err = celestia.ProcessCelestiaConfig(celestiaParseConf, log.Root())
+		if err != nil {
+			log.Error("Process celestia config failed", "err", err)
+		}
+	}
+	celestiaCliCfg := cli_config.ParseCLIConfig(celestiaParseConf.BlockTime, celestiaParseConf.Enable, celestiaParseConf.ListenAddr, celestiaParseConf.ListenPort, celestiaParseConf.Level, celestiaParseConf.Color, celestiaParseConf.FormatType)
+
+	// Eigen
 	eigendaConf := &eigenda.EigenDAConfig{}
 	if err := PrepareConfig(EigenDAConfigDir, EigenDAConfigFile, eigendaConf, EigenDAPrefix, eigenda.EigenDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "EigenDA")
 	}
 
+	// EIP-4844
+	var eip4844Config *eip4844.Eip4844Config
+	eip4844ParseConf := &eip4844.ParseEip4844Config{}
+	if err := PrepareConfig(EigenDAConfigDir, EigenDAConfigFile, eip4844ParseConf, Eip4844Prefix, []string{}); err != nil {
+		log.Error("PrepareConfig failed", "da-type", "eip-4844")
+	} else {
+		eip4844Config, err = eip4844.ProcessEip4844Config(eip4844ParseConf, log.Root())
+		if err != nil {
+			log.Error("Process eip4844 config failed", "err", err)
+		}
+	}
+	eip4844CliCfg := cli_config.ParseCLIConfig(eip4844ParseConf.BlockTime, eip4844ParseConf.Enable, eip4844ParseConf.ListenAddr, eip4844ParseConf.ListenPort, eip4844ParseConf.Level, eip4844ParseConf.Color, eip4844ParseConf.FormatType)
+
+	// Near
 	neardaConf := &nearda.NearDAConfig{}
 	if err := PrepareConfig(NearDAConfigDir, NearDAConfigFile, neardaConf, NearDAPrefix, nearda.NearDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "NearDA")
 	}
 	return &RollupConfig{
 		AnytrustDAConfig: anytrustDAConf,
+		CelestiaDAConfig: celestiaConfig,
+		CelestiaCLICfg:   celestiaCliCfg,
 		EigenDAConfig:    eigendaConf,
+		Eip4844Config:    eip4844Config,
+		Eip4844CLICfg:    eip4844CliCfg,
 		NearDAConfig:     neardaConf,
 	}
 }

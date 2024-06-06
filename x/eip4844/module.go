@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum/go-ethereum"
@@ -15,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 
 	"github.com/eniac-x-labs/rollup-node/client"
-	"github.com/eniac-x-labs/rollup-node/config"
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
 	"github.com/eniac-x-labs/rollup-node/log"
 	"github.com/eniac-x-labs/rollup-node/signer"
@@ -25,7 +25,7 @@ var ErrAlreadyStopped = errors.New("already stopped")
 
 type Eip4844Rollup struct {
 	Eip4844Config  CLIConfig
-	Config         *config.CLIConfig
+	Config         *cli_config.CLIConfig
 	l1BeaconClient *eth.L1BeaconClient
 	Log            log.Logger
 	ethClients     client.EthClient
@@ -54,7 +54,7 @@ func (e *Eip4844Rollup) Stopped() bool {
 
 func NewEip4844Rollup(cliCtx *cli.Context, logger log.Logger) (*Eip4844Rollup, error) {
 
-	cfg, err := config.NewConfig(cliCtx)
+	cfg, err := cli_config.NewConfig(cliCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func NewEip4844Rollup(cliCtx *cli.Context, logger log.Logger) (*Eip4844Rollup, e
 	return Eip4844ServiceFromCLIConfig(cliCtx.Context, cfg, eip4844Config, logger)
 }
 
-func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) (*Eip4844Rollup, error) {
+func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) (*Eip4844Rollup, error) {
 	var e Eip4844Rollup
 	if err := e.initFromCLIConfig(ctx, cfg, eip4844Config, logger); err != nil {
 		return nil, errors.Join(err, e.Stop(ctx)) // try to clean up our failed initialization attempt
@@ -71,7 +71,20 @@ func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip
 	return &e, nil
 }
 
-func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) error {
+func NewEip4844WithConfig(ctx context.Context, cfg *cli_config.CLIConfig, config *Eip4844Config) (*Eip4844Rollup, error) {
+	if cfg == nil || config == nil {
+		log.Error("celestia config is nil pointer")
+		return nil, nil
+	}
+
+	var e Eip4844Rollup
+	if err := e.initFromCLIConfig(ctx, cfg, config.eip4844Config, config.logger); err != nil {
+		return nil, errors.Join(err, e.Stop(ctx)) // try to clean up our failed initialization attempt
+	}
+	return &e, nil
+}
+
+func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) error {
 
 	e.Config = cfg
 	e.Eip4844Config = eip4844Config

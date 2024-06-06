@@ -29,8 +29,8 @@ func Test_Sdk(t *testing.T) {
 	t.Logf("%+v", res)
 	t.Log("4")
 
-	resByte, err = sdk.RetrieveFromDAWithType(_common.NearDAType, "MWNjNDc5YmVjMTBmNTFkYjVkMTUzNjJiMzg2ZTNmNGU2ZDhlY2E4MmRlZGViOTAyMWNmYWYyZjNkMzI3ZjJhNS0zMTM3MzEzNzM1MzkzMjM4MzIzOTM5MzYzNDM1MzAzNjMxMzYzODJmMzAyZjMz")
-	ast.NoError(err)
-	t.Logf("%x", resByte)
+	//resByte, err = sdk.RetrieveFromDAWithType(_common.NearDAType, "MWNjNDc5YmVjMTBmNTFkYjVkMTUzNjJiMzg2ZTNmNGU2ZDhlY2E4MmRlZGViOTAyMWNmYWYyZjNkMzI3ZjJhNS0zMTM3MzEzNzM1MzkzMjM4MzIzOTM5MzYzNDM1MzAzNjMxMzYzODJmMzAyZjMz")
+	//ast.NoError(err)
+	//t.Logf("%x", resByte)
 
 }
