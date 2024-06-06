@@ -17,3 +17,15 @@ type EigenDAConfig struct {
 	// The amount of time to wait between status queries of a newly dispersed blob
 	StatusQueryRetryInterval time.Duration `toml:"statusQueryRetryInterval"`
 }
+
+const (
+	RpcFlag                      = "rpc"
+	StatusQueryTimeoutFlag       = "statusQueryTimeout"
+	StatusQueryRetryIntervalFlag = "statusQueryRetryInterval"
+)
+
+var EigenDAEnvFlags = []string{
+	RpcFlag,
+	StatusQueryTimeoutFlag,
+	StatusQueryRetryIntervalFlag,
+}

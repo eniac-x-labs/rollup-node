@@ -3,7 +3,6 @@ package sdk
 import (
 	"net/rpc"
 
-	_core "github.com/eniac-x-labs/rollup-node/core"
 	_rpc "github.com/eniac-x-labs/rollup-node/rpc"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -12,7 +11,7 @@ type RollupSDK struct {
 	*rpc.Client
 }
 
-func NewRollupSdk(addr string) (_core.RollupInter, error) {
+func NewRollupSdk(addr string) (_rpc.RollupInter, error) {
 	client, err := rpc.Dial("tcp", addr)
 	if err != nil {
 		log.Error("rpc Dial failed", "err", err)

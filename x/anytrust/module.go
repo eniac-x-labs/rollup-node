@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"io"
 	"strings"
-	"time"
 
 	"github.com/eniac-x-labs/anytrustDA/arbstate"
 	"github.com/eniac-x-labs/anytrustDA/das"
@@ -30,18 +29,6 @@ type IAnytrustDA interface {
 type AnytrustDA struct {
 	writer das.DataAvailabilityServiceWriter //*das.DASRPCClient
 	reader *das.RestfulDasClient
-}
-
-type AnytrustConfig struct {
-	RpcUrl            string `toml:"rpcUrl"`
-	RestfulUrl        string `toml:"restfulUrl"`
-	DataRetentionTime uint64 `toml:"dataRetentionTime"`
-
-	RandomMessageSize  int           `toml:"randomMessageSize"`
-	DASRetentionPeriod time.Duration `toml:"dasRetentionPeriod"`
-	SigningKey         string        `toml:"signingKey"`
-	//SigningWallet         string        `toml:"signingWallet"`
-	//SigningWalletPassword string        `toml:"signingWalletPassword"`
 }
 
 func NewAnytrustDA(config *AnytrustConfig) (IAnytrustDA, error) {
