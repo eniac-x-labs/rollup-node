@@ -20,3 +20,5 @@ listenPort = 0
 level = 4
 color = true
 formatType = "terminal"
+
+l1ChainIdFlagName = 0

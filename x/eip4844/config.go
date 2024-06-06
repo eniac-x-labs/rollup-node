@@ -1,7 +1,11 @@
 package eip4844
 
 import (
+	"math/big"
+
 	_log "github.com/eniac-x-labs/rollup-node/log"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type ParseEip4844Config struct {
@@ -28,6 +32,8 @@ type ParseEip4844Config struct {
 	Level      int    `toml:"level"`
 	Color      bool   `toml:"color"`
 	FormatType string `toml:"formatType"`
+
+	L1ChainIdFlagName uint64 `toml:"l1ChainIdFlagName"`
 }
 
 type Eip4844Config struct {
@@ -37,6 +43,23 @@ type Eip4844Config struct {
 }
 
 func ProcessEip4844Config(parseConf *ParseEip4844Config, logger _log.Logger) (*Eip4844Config, error) {
-	// todo: kezi
-	return nil, nil
+	l1ChainID, _ := new(big.Int).SetString(parseConf.L1ChainID, 10)
+	signer := types.NewCancunSigner(new(big.Int).SetUint64(parseConf.L1ChainIdFlagName))
+
+	return &Eip4844Config{
+		eip4844Config: CLIConfig{
+			L1Rpc:      parseConf.L1Rpc,
+			PrivateKey: parseConf.PrivateKey,
+			L1ChainID:  l1ChainID,
+			DSConfig: &DataSourceConfig{
+				l1Signer:          signer,
+				batchInboxAddress: common.HexToAddress(parseConf.BatchInboxAddress),
+				batcherAddr:       common.HexToAddress(parseConf.BatcherAddr),
+			},
+			UseBlobs:               parseConf.UseBlobs,
+			L1BeaconAddr:           parseConf.L1BeaconAddr,
+			ShouldFetchAllSidecars: parseConf.ShouldFetchAllSidecars,
+		},
+		logger: logger,
+	}, nil
 }

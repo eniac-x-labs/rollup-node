@@ -1,7 +1,11 @@
 package celestia
 
 import (
+	"math/big"
+
 	_log "github.com/eniac-x-labs/rollup-node/log"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 // corresponding celestia.toml
@@ -30,6 +34,8 @@ type ParseCelestiaConfig struct {
 	Level      int    `toml:"level"`
 	Color      bool   `toml:"color"`
 	FormatType string `toml:"formatType"`
+
+	L1ChainIdFlagName uint64 `toml:"l1ChainIdFlagName"`
 }
 
 type CelestiaConfig struct {
@@ -39,6 +45,24 @@ type CelestiaConfig struct {
 }
 
 func ProcessCelestiaConfig(parseConf *ParseCelestiaConfig, logger _log.Logger) (*CelestiaConfig, error) {
-	// todo: kezi
-	return nil, nil
+	l1ChainID, _ := new(big.Int).SetString(parseConf.L1ChainID, 10)
+	signer := types.NewCancunSigner(new(big.Int).SetUint64(parseConf.L1ChainIdFlagName))
+
+	return &CelestiaConfig{
+		celestiaConfig: CLIConfig{
+			L1Rpc:               parseConf.L1Rpc,
+			L1ChainID:           l1ChainID,
+			PrivateKey:          parseConf.PrivateKey,
+			DaRpc:               parseConf.DaRpc,
+			AuthToken:           parseConf.AuthToken,
+			Namespace:           parseConf.Namespace,
+			EthFallbackDisabled: parseConf.EthFallbackDisabled,
+			DSConfig: &DataSourceConfig{
+				l1Signer:          signer,
+				batchInboxAddress: common.HexToAddress(parseConf.BatchInboxAddress),
+				batcherAddr:       common.HexToAddress(parseConf.BatcherAddr),
+			},
+		},
+		logger: logger,
+	}, nil
 }
