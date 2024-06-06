@@ -26,7 +26,9 @@ require (
 	google.golang.org/grpc v1.62.1
 )
 
+require github.com/go-chi/chi/v5 v5.0.12
 require github.com/docker/docker v25.0.3+incompatible
+
 
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect

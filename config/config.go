@@ -45,6 +45,8 @@ var (
 	Eip4844ConfigFile  = "eip4844"
 	NearDAConfigDir    = defaultConfigDir
 	NearDAConfigFile   = "nearda"
+	ApiConfigDir       = defaultConfigDir
+	ApiConfigFile      = "api"
 )
 
 const (
@@ -56,6 +58,7 @@ const (
 	EigenDAPrefix    = "eigenda"
 	Eip4844Prefix    = "eip4844"
 	NearDAPrefix     = "nearda"
+	ApiPrefix        = "api"
 )
 
 func NewRollupConfig() *RollupConfig {
