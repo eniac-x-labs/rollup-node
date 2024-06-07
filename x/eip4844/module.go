@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"sync/atomic"
 
 	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/eniac-x-labs/rollup-node/client"
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/log"
 	"github.com/eniac-x-labs/rollup-node/signer"
 )
 

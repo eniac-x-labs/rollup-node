@@ -1,9 +1,9 @@
 package celestia
 
 import (
-	"github.com/eniac-x-labs/rollup-node/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // DerivationVersionCelestia is a byte marker for celestia references submitted

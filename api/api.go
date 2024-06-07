@@ -14,8 +14,7 @@ import (
 
 	"github.com/eniac-x-labs/rollup-node/api/common/httputil"
 	"github.com/eniac-x-labs/rollup-node/api/routes"
-	"github.com/eniac-x-labs/rollup-node/api/service"
-	_core "github.com/eniac-x-labs/rollup-node/core"
+	api "github.com/eniac-x-labs/rollup-node/api/service"
 )
 
 const (
@@ -31,7 +30,7 @@ type API struct {
 	stopped   atomic.Bool
 }
 
-func NewApi(ctx context.Context, log log.Logger, apiAddress string, rollup _core.RollupInter) error {
+func NewApi(ctx context.Context, log log.Logger, apiAddress string, rollup api.RollupInter) error {
 	out := &API{log: log}
 	if err := out.initFromConfig(ctx, apiAddress, rollup); err != nil {
 		return errors.Join(err, out.Stop(ctx))
@@ -39,7 +38,7 @@ func NewApi(ctx context.Context, log log.Logger, apiAddress string, rollup _core
 	return nil
 }
 
-func (a *API) initFromConfig(ctx context.Context, apiAddress string, rollup _core.RollupInter) error {
+func (a *API) initFromConfig(ctx context.Context, apiAddress string, rollup api.RollupInter) error {
 
 	a.initRouter(rollup)
 	if err := a.startServer(apiAddress); err != nil {
@@ -48,9 +47,9 @@ func (a *API) initFromConfig(ctx context.Context, apiAddress string, rollup _cor
 	return nil
 }
 
-func (a *API) initRouter(rollup _core.RollupInter) {
+func (a *API) initRouter(rollup api.RollupInter) {
 
-	svc := service.New(rollup)
+	svc := api.New(rollup)
 	apiRouter := chi.NewRouter()
 	h := routes.NewRoutes(a.log, apiRouter, svc)
 

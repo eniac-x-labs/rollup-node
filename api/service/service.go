@@ -1,13 +1,14 @@
 package service
 
-import (
-	_core "github.com/eniac-x-labs/rollup-node/core"
-)
-
-type HandlerSvc struct {
-	_core.RollupInter
+type RollupInter interface {
+	RollupWithType(data []byte, daType int) ([]interface{}, error)
+	RetrieveFromDAWithType(daType int, args interface{}) ([]byte, error)
 }
 
-func New(rollup _core.RollupInter) HandlerSvc {
+type HandlerSvc struct {
+	RollupInter
+}
+
+func New(rollup RollupInter) HandlerSvc {
 	return HandlerSvc{rollup}
 }

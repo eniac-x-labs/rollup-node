@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/eniac-x-labs/anytrustDA/das"
 	"github.com/eniac-x-labs/anytrustDA/util/signature"
@@ -10,7 +11,6 @@ import (
 	"github.com/eniac-x-labs/rollup-node/x/celestia"
 	"github.com/eniac-x-labs/rollup-node/x/eip4844"
 
-	"github.com/eniac-x-labs/rollup-node/log"
 	//"github.com/eniac-x-labs/anytrustDA/das"
 	//"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
@@ -79,7 +79,7 @@ func NewRollupConfig() *RollupConfig {
 			log.Error("Process celestia config failed", "err", err)
 		}
 	}
-	celestiaCliCfg := cli_config.ParseCLIConfig(celestiaParseConf.BlockTime, celestiaParseConf.Enable, celestiaParseConf.ListenAddr, celestiaParseConf.ListenPort, celestiaParseConf.Level, celestiaParseConf.Color, celestiaParseConf.FormatType)
+	celestiaCliCfg := cli_config.ParseCLIConfig(celestiaParseConf.BlockTime, celestiaParseConf.Enable, celestiaParseConf.ListenAddr, celestiaParseConf.ListenPort)
 
 	// Eigen
 	eigendaConf := &eigenda.EigenDAConfig{}
@@ -98,7 +98,7 @@ func NewRollupConfig() *RollupConfig {
 			log.Error("Process eip4844 config failed", "err", err)
 		}
 	}
-	eip4844CliCfg := cli_config.ParseCLIConfig(eip4844ParseConf.BlockTime, eip4844ParseConf.Enable, eip4844ParseConf.ListenAddr, eip4844ParseConf.ListenPort, eip4844ParseConf.Level, eip4844ParseConf.Color, eip4844ParseConf.FormatType)
+	eip4844CliCfg := cli_config.ParseCLIConfig(eip4844ParseConf.BlockTime, eip4844ParseConf.Enable, eip4844ParseConf.ListenAddr, eip4844ParseConf.ListenPort)
 
 	// Near
 	neardaConf := &nearda.NearDAConfig{}

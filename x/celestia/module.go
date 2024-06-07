@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/eniac-x-labs/rollup-node/client"
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/log"
 	"github.com/eniac-x-labs/rollup-node/signer"
 )
 

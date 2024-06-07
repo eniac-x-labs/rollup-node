@@ -7,14 +7,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/eniac-x-labs/rollup-node/api"
+	"os"
 	"sync/atomic"
 
 	"github.com/eniac-x-labs/anytrustDA/das"
 	_common "github.com/eniac-x-labs/rollup-node/common"
 	"github.com/eniac-x-labs/rollup-node/common/cliapp"
 	_errors "github.com/eniac-x-labs/rollup-node/common/errors"
-	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
-	_log "github.com/eniac-x-labs/rollup-node/log"
 	_rpc "github.com/eniac-x-labs/rollup-node/rpc"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
 	"github.com/eniac-x-labs/rollup-node/x/celestia"
@@ -41,7 +41,7 @@ type RollupModule struct {
 	eip4844    *eip4844.Eip4844Rollup
 	nearDA     nearda.INearDA
 	stopped    atomic.Bool
-	Log        _log.Logger
+	Log        log.Logger
 }
 
 func (r *RollupModule) Start(ctx context.Context) error {
@@ -64,15 +64,26 @@ func (r *RollupModule) Stopped() bool {
 }
 
 func RunRollupModuleForCLI(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (cliapp.Lifecycle, error) {
-	rollupModule, err := NewRollupModule_2(cliCtx)
+	logger := log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stdout, log.LevelDebug, true))
+	log.SetDefault(logger)
+
+	rollupModule, err := NewRollupModule_2(cliCtx, logger)
 	if err != nil {
 		log.Error("Run Rollup Module failed", "err", err)
 		return nil, err
 	}
 
 	rpcAddress := cliCtx.String("rpcAddress")
+	apiAddress := cliCtx.String("apiAddress")
+
 	if len(rpcAddress) != 0 {
 		go _rpc.NewAndStartRollupRpcServer(cliCtx.Context, rpcAddress, rollupModule)
+	}
+
+	err = api.NewApi(cliCtx.Context, logger, apiAddress, rollupModule)
+	if err != nil {
+		log.Error("NewApi failed", "err", err)
+		return nil, err
 	}
 
 	return rollupModule, nil
@@ -117,15 +128,7 @@ func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) 
 }
 
 // for cli
-func NewRollupModule_2(cliCtx *cli.Context) (*RollupModule, error) {
-	cfg, err := cli_config.NewConfig(cliCtx) // celestia & eip4844
-	if err != nil {
-		return nil, err
-	}
-
-	logger := _log.NewLogger(_log.AppOut(cliCtx), cfg.LogConfig).New("rollup-node")
-	_log.SetGlobalLogHandler(logger.GetHandler())
-
+func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, error) {
 	celestiaDA, err := celestia.NewCelestiaRollup(cliCtx, logger)
 	if err != nil {
 		log.Error("NewCelestiaRollup failed", "err", err)
