@@ -1,9 +1,9 @@
 package celestia
 
 import (
+	"github.com/ethereum/go-ethereum/log"
 	"math/big"
 
-	_log "github.com/eniac-x-labs/rollup-node/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -30,21 +30,16 @@ type ParseCelestiaConfig struct {
 	ListenAddr string `toml:"listenAddr"`
 	ListenPort int    `toml:"listenPort"`
 
-	// Log CLI Config
-	Level      int    `toml:"level"`
-	Color      bool   `toml:"color"`
-	FormatType string `toml:"formatType"`
-
 	L1ChainIdFlagName uint64 `toml:"l1ChainIdFlagName"`
 }
 
 type CelestiaConfig struct {
 	//cfg            *config.CLIConfig
 	celestiaConfig CLIConfig
-	logger         _log.Logger
+	logger         log.Logger
 }
 
-func ProcessCelestiaConfig(parseConf *ParseCelestiaConfig, logger _log.Logger) (*CelestiaConfig, error) {
+func ProcessCelestiaConfig(parseConf *ParseCelestiaConfig, logger log.Logger) (*CelestiaConfig, error) {
 	l1ChainID, _ := new(big.Int).SetString(parseConf.L1ChainID, 10)
 	signer := types.NewCancunSigner(new(big.Int).SetUint64(parseConf.L1ChainIdFlagName))
 

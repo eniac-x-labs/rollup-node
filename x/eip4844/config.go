@@ -1,9 +1,9 @@
 package eip4844
 
 import (
+	"github.com/ethereum/go-ethereum/log"
 	"math/big"
 
-	_log "github.com/eniac-x-labs/rollup-node/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -39,10 +39,10 @@ type ParseEip4844Config struct {
 type Eip4844Config struct {
 	//cfg           *config.CLIConfig
 	eip4844Config CLIConfig
-	logger        _log.Logger
+	logger        log.Logger
 }
 
-func ProcessEip4844Config(parseConf *ParseEip4844Config, logger _log.Logger) (*Eip4844Config, error) {
+func ProcessEip4844Config(parseConf *ParseEip4844Config, logger log.Logger) (*Eip4844Config, error) {
 	l1ChainID, _ := new(big.Int).SetString(parseConf.L1ChainID, 10)
 	signer := types.NewCancunSigner(new(big.Int).SetUint64(parseConf.L1ChainIdFlagName))
 
