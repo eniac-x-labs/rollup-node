@@ -43,7 +43,7 @@ func Test_GetBlobInfo(t *testing.T) {
 	daCli, err := NewEigenDAClient(&testConf)
 	ast.NoError(err)
 
-	reqIDBase64 := "MzdkZTcxNDIxODgyZTlhMjg4YmUxN2YxNjUyMjFlZTk0OTI5MDNmZWM2M2YxMmY2MzU4YTg2NGQzZGQxZjQxMi0zMTM3MzEzMzMxMzAzMTM4MzkzOTM5MzUzNjM3MzYzMzMwMzYzNTJmMzAyZjMzMzMyZjMxMmYzMzMzMmZlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1"
+	reqIDBase64 := "MzdkZTcxNDIxODgyZTlhMjg4YmUxN2YxNjUyMjFlZTk0OTI5MDNmZWM2M2YxMmY2MzU4YTg2NGQzZGQxZjQxMi0zMTM3MzEzNzM3MzYzNDM0MzMzOTM4MzgzNjMxMzMzNTMzMzkzNTJmMzAyZjMzMzMyZjMxMmYzMzMzMmZlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1"
 	reqIDByte, err := base64.StdEncoding.DecodeString(reqIDBase64)
 	ast.NoError(err)
 

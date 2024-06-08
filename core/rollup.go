@@ -7,9 +7,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/eniac-x-labs/rollup-node/api"
 	"os"
 	"sync/atomic"
+
+	"github.com/eniac-x-labs/rollup-node/api"
 
 	"github.com/eniac-x-labs/anytrustDA/das"
 	_common "github.com/eniac-x-labs/rollup-node/common"
@@ -220,7 +221,6 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 		}
 		reqIDBase64 := base64.StdEncoding.EncodeToString(reqID)
 		log.Debug("eigenDA stored data", "reqIDBase64", reqIDBase64)
-
 		res = append(res, reqIDBase64)
 		return res, nil
 	case _common.Eip4844Type:
@@ -244,14 +244,15 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 			return nil, _errors.DANotPreparedErr
 		}
 
-		txIDByte, err := r.nearDA.Store(data)
+		frameRefBytes, err := r.nearDA.Store(data)
 		if err != nil {
 			log.Error(_errors.RollupFailedMsg, "da-type", "nearDA", "err", err)
 			return nil, err
 		}
-		txid := binary.BigEndian.Uint32(txIDByte[:32])
+		txid := binary.BigEndian.Uint32(frameRefBytes[:32])
 		log.Debug("nearDA stored data", "txID", txid)
-		res = append(res, txid)
+
+		res = append(res, base64.StdEncoding.EncodeToString(frameRefBytes))
 		return res, nil
 	default:
 		log.Error("rollup with unknown da type", "daType", daType, "expected", "[0,4]")
@@ -299,25 +300,28 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 		}
 		reqIDBase64, ok := args.(string)
 		if !ok {
-			log.Error("args[0] is not string type")
+			log.Error("args is not string type")
 			return nil, _errors.WrongArgTypeErr
 		}
 		log.Debug("request get from eigenDA", "reqID", reqIDBase64)
 
 		reqIDByte, err := base64.StdEncoding.DecodeString(reqIDBase64)
-		log.Error("decode base64 reqID into string failed", "err", err, "reqIDBase64", reqIDBase64, "da-type", "eigenDA")
+		if err != nil {
+			log.Error("decode base64 reqID into string failed", "err", err, "reqIDBase64", reqIDBase64, "da-type", "eigenDA")
+			return nil, err
+		}
 
 		status, info, err := r.eigenDA.GetBlobStatus(r.ctx, reqIDByte)
 		if err != nil {
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqIDBase64", reqIDBase64, "da-type", "eigenDA")
 			return nil, err
 		}
-		log.Debug("get from eigenDA", "status", status.String(), "reqIDBase64", reqIDBase64)
-
 		batchHeaderHash, blobIndex := info.BlobVerificationProof.GetBatchMetadata().GetBatchHeaderHash(), info.GetBlobVerificationProof().GetBlobIndex()
+		log.Debug("get from eigenDA", "status", status.String(), "reqIDBase64", reqIDBase64, "batchHeaderHash", hex.EncodeToString(batchHeaderHash), "blobIndex", blobIndex)
+
 		res, err := r.eigenDA.RetrieveBlob(r.ctx, batchHeaderHash, blobIndex)
 		if err != nil {
-			log.Error(_errors.GetFromDAErrMsg, "da-type", "eigenDA")
+			log.Error(_errors.GetFromDAErrMsg, "da-type", "eigenDA", "err", err)
 			return nil, err
 		}
 
@@ -344,7 +348,13 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		frameRefBytes := args.([]byte)
+		frameRefBase64 := args.(string)
+		frameRefBytes, err := base64.StdEncoding.DecodeString(frameRefBase64)
+		if err != nil {
+			log.Error("Error decoding Base64 for near da:", "err", err)
+			return nil, err
+		}
+
 		if len(frameRefBytes) < 32 {
 			log.Error("nearda arg length incorrect", "length", len(frameRefBytes), "want", "larger than 32")
 			return nil, errors.New(fmt.Sprintf("nearda arg length incorrect, expected: larger than 32, got: %d", len(frameRefBytes)))
