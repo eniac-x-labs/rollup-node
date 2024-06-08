@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/eniac-x-labs/anytrustDA/das"
@@ -36,7 +37,7 @@ type AnytrustConfig struct {
 
 var (
 	AnytrustConfigDir  = defaultConfigDir
-	AnytrustConfigFile = "anyrtust"
+	AnytrustConfigFile = "anytrust"
 	CelestiaConfigDir  = defaultConfigDir
 	CelestiaConfigFile = "celestia"
 	EigenDAConfigDir   = defaultConfigDir

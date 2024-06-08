@@ -185,11 +185,12 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 			log.Error(_errors.RollupFailedMsg, "da-type", "anytrustDA", "err", err)
 			return nil, err
 		}
-		log.Debug("eigenDA stored data", "daCert.DataHash", fmt.Sprintf("%x", daCert.DataHash))
 
-		das.Serialize(daCert)
-		res = append(res, daCert.DataHash)
-		res = append(res, das.Serialize(daCert))
+		dataHashHex := hex.EncodeToString(daCert.DataHash[:])
+		log.Debug("anytrust stored data", "daCert.DataHashHex", dataHashHex)
+
+		res = append(res, dataHashHex)
+		res = append(res, base64.StdEncoding.EncodeToString(das.Serialize(daCert)))
 		return res, nil
 
 	case CelestiaType:
@@ -268,6 +269,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			return nil, _errors.DANotPreparedErr
 		}
 		hashHex := args.(string)
+		log.Debug("receive rollup request with anytrustDA", "hashHex", hashHex)
 		res, err := r.anytrustDA.ReadDA(r.ctx, hashHex)
 		if err != nil {
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "hashHex", hashHex, "da-type", "anytrustDA")

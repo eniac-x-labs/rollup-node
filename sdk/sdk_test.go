@@ -34,3 +34,19 @@ func Test_Sdk(t *testing.T) {
 	t.Logf("%s", resByte)
 
 }
+
+func Test_Anytrust(t *testing.T) {
+	ast := assert.New(t)
+	sdk, err := NewRollupSdk("localhost:9000")
+	ast.NoError(err)
+	ast.NotNil(sdk)
+	data := []byte("rollup data")
+
+	res, err := sdk.RollupWithType(data, _common.AnytrustType)
+	ast.NoError(err)
+	t.Log(res[0].(string))
+
+	resRetrieve, err := sdk.RetrieveFromDAWithType(_common.AnytrustType, res[0].(string))
+	ast.NoError(err)
+	t.Logf("%s", resRetrieve)
+}

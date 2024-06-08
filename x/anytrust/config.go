@@ -1,15 +1,13 @@
 package anytrust
 
-import "time"
-
 type AnytrustConfig struct {
 	RpcUrl            string `toml:"rpcUrl"`
 	RestfulUrl        string `toml:"restfulUrl"`
 	DataRetentionTime uint64 `toml:"dataRetentionTime"`
 
-	RandomMessageSize  int           `toml:"randomMessageSize"`
-	DASRetentionPeriod time.Duration `toml:"dasRetentionPeriod"`
-	SigningKey         string        `toml:"signingKey"`
+	RandomMessageSize int `toml:"randomMessageSize"`
+	//DASRetentionPeriod time.Duration `toml:"dasRetentionPeriod"`
+	SigningKey string `toml:"signingKey"`
 	//SigningWallet         string        `toml:"signingWallet"`
 	//SigningWalletPassword string        `toml:"signingWalletPassword"`
 }
