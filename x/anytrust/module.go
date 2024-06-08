@@ -1,18 +1,14 @@
 package anytrust
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"encoding/base64"
-	"io"
 	"strings"
 
 	"github.com/eniac-x-labs/anytrustDA/arbstate"
 	"github.com/eniac-x-labs/anytrustDA/das"
 	"github.com/eniac-x-labs/anytrustDA/util/signature"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -91,22 +87,8 @@ func (a *AnytrustDA) WriteDA(ctx context.Context, data []byte, retentionTime uin
 }
 
 func (a *AnytrustDA) ReadDA(ctx context.Context, hashHex string) ([]byte, error) {
-	var (
-		decodedHash []byte
-		err         error
-	)
 	if strings.HasPrefix(hashHex, "0x") {
-		decodedHash, err = hexutil.Decode(hashHex)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		hashDecoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(hashHex)))
-		decodedHash, err = io.ReadAll(hashDecoder)
-		if err != nil {
-			return nil, err
-		}
+		hashHex = hashHex[2:]
 	}
-
-	return a.reader.GetByHash(ctx, common.BytesToHash(decodedHash))
+	return a.reader.GetByHash(ctx, common.HexToHash(hashHex))
 }
