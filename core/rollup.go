@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -239,21 +240,21 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 		res = append(res, txHashStr)
 		return res, nil
 	case _common.NearDAType:
-		//if r.nearDA == nil {
-		//	log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
-		//	return nil, _errors.DANotPreparedErr
-		//}
-		//
-		//frameRefBytes, err := r.nearDA.Store(data)
-		//if err != nil {
-		//	log.Error(_errors.RollupFailedMsg, "da-type", "nearDA", "err", err)
-		//	return nil, err
-		//}
-		//txid := binary.BigEndian.Uint32(frameRefBytes[:32])
-		//log.Debug("nearDA stored data", "txID", txid)
-		//
-		//res = append(res, base64.StdEncoding.EncodeToString(frameRefBytes))
-		//return res, nil
+		if r.nearDA == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
+			return nil, _errors.DANotPreparedErr
+		}
+
+		frameRefBytes, err := r.nearDA.Store(data)
+		if err != nil {
+			log.Error(_errors.RollupFailedMsg, "da-type", "nearDA", "err", err)
+			return nil, err
+		}
+		txid := binary.BigEndian.Uint32(frameRefBytes[:32])
+		log.Debug("nearDA stored data", "txID", txid)
+
+		res = append(res, base64.StdEncoding.EncodeToString(frameRefBytes))
+		return res, nil
 	default:
 		log.Error("rollup with unknown da type", "daType", daType, "expected", "[0,4]")
 	}
@@ -345,30 +346,30 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 		log.Debug("get from eip4844 successfully", "reqTxHashStr", reqTxHashStr)
 		return res, nil
 	case _common.NearDAType:
-		//if r.nearDA == nil {
-		//	log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
-		//	return nil, _errors.DANotPreparedErr
-		//}
-		//frameRefBase64 := args.(string)
-		//frameRefBytes, err := base64.StdEncoding.DecodeString(frameRefBase64)
-		//if err != nil {
-		//	log.Error("Error decoding Base64 for near da:", "err", err)
-		//	return nil, err
-		//}
-		//
-		//if len(frameRefBytes) < 32 {
-		//	log.Error("nearda arg length incorrect", "length", len(frameRefBytes), "want", "larger than 32")
-		//	return nil, errors.New(fmt.Sprintf("nearda arg length incorrect, expected: larger than 32, got: %d", len(frameRefBytes)))
-		//}
-		//
-		//result, err := r.nearDA.GetFromDA(frameRefBytes, binary.BigEndian.Uint32(frameRefBytes[:32]))
-		//if err != nil {
-		//	log.Error(_errors.GetFromDAErrMsg, "da-type", "nearDA", "err", err)
-		//	return nil, err
-		//}
-		//
-		//log.Debug("get from nearDA successfully")
-		//return result, nil
+		if r.nearDA == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
+			return nil, _errors.DANotPreparedErr
+		}
+		frameRefBase64 := args.(string)
+		frameRefBytes, err := base64.StdEncoding.DecodeString(frameRefBase64)
+		if err != nil {
+			log.Error("Error decoding Base64 for near da:", "err", err)
+			return nil, err
+		}
+
+		if len(frameRefBytes) < 32 {
+			log.Error("nearda arg length incorrect", "length", len(frameRefBytes), "want", "larger than 32")
+			return nil, errors.New(fmt.Sprintf("nearda arg length incorrect, expected: larger than 32, got: %d", len(frameRefBytes)))
+		}
+
+		result, err := r.nearDA.GetFromDA(frameRefBytes, binary.BigEndian.Uint32(frameRefBytes[:32]))
+		if err != nil {
+			log.Error(_errors.GetFromDAErrMsg, "da-type", "nearDA", "err", err)
+			return nil, err
+		}
+
+		log.Debug("get from nearDA successfully")
+		return result, nil
 	default:
 		log.Error("RetrieveFromDAWithType got unknown da type", "daType", daType, "expected", "[0,4]")
 	}

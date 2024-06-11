@@ -4,7 +4,7 @@ go 1.22
 
 replace (
 	github.com/eniac-x-labs/anytrustDA => ./x/anytrust/anytrustDA
-	//github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
+	github.com/near/rollup-data-availability => github.com/near/rollup-data-availability v0.2.4-0.20240327150603-b004cd803551
 )
 
 require (
@@ -13,18 +13,22 @@ require (
 	github.com/eniac-x-labs/anytrustDA v0.0.0
 	github.com/ethereum/go-ethereum v1.13.14
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/go-stack/stack v1.8.1
 	github.com/holiman/uint256 v1.2.4
-	//github.com/near/rollup-data-availability v0.0.0-00010101000000-000000000000
+	github.com/near/rollup-data-availability v0.0.0-00010101000000-000000000000
 	github.com/prometheus/client_golang v1.19.0
 	github.com/rollkit/go-da v0.5.0
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/term v0.16.0
 	google.golang.org/grpc v1.62.1
 )
 
 require github.com/go-chi/chi/v5 v5.0.12
+require github.com/docker/docker v25.0.3+incompatible
+
 
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
@@ -107,5 +111,6 @@ require (
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gotest.tools/v3 v3.5.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
