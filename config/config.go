@@ -80,7 +80,7 @@ func NewRollupConfig() *RollupConfig {
 			log.Error("Process celestia config failed", "err", err)
 		}
 	}
-	celestiaCliCfg := cli_config.ParseCLIConfig(celestiaParseConf.BlockTime, celestiaParseConf.Enable, celestiaParseConf.ListenAddr, celestiaParseConf.ListenPort)
+	celestiaCliCfg := cli_config.ParseCLIConfig(celestiaParseConf.BlockTime)
 
 	// Eigen
 	eigendaConf := &eigenda.EigenDAConfig{}
@@ -99,7 +99,7 @@ func NewRollupConfig() *RollupConfig {
 			log.Error("Process eip4844 config failed", "err", err)
 		}
 	}
-	eip4844CliCfg := cli_config.ParseCLIConfig(eip4844ParseConf.BlockTime, eip4844ParseConf.Enable, eip4844ParseConf.ListenAddr, eip4844ParseConf.ListenPort)
+	eip4844CliCfg := cli_config.ParseCLIConfig(eip4844ParseConf.BlockTime)
 
 	// Near
 	neardaConf := &nearda.NearDAConfig{}

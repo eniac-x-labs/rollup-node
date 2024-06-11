@@ -2,6 +2,7 @@ package flags
 
 import (
 	"fmt"
+	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	"github.com/urfave/cli/v2"
 
 	service "github.com/eniac-x-labs/rollup-node/eth-serivce"
@@ -21,6 +22,7 @@ var requiredFlags = []cli.Flag{}
 var optionalFlags = []cli.Flag{}
 
 func init() {
+	optionalFlags = append(optionalFlags, cli_config.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, metrics.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, eip4844.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, celestia.CLIFlags(EnvVarPrefix)...)

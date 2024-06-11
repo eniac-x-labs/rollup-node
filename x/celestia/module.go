@@ -58,8 +58,7 @@ func NewCelestiaRollup(cliCtx *cli.Context, logger log.Logger) (*CelestiaRollup,
 	if err != nil {
 		return nil, err
 	}
-
-	return CelestiaServiceFromCLIConfig(cliCtx.Context, cfg, ReadCLIConfig(cliCtx), logger)
+	return CelestiaServiceFromCLIConfig(cliCtx.Context, cfg, ReadCLIConfig(cliCtx, cfg.L1ChainID), logger)
 }
 
 func CelestiaServiceFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, celestiaConfig CLIConfig, logger log.Logger) (*CelestiaRollup, error) {
@@ -89,12 +88,19 @@ func (c *CelestiaRollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.
 	c.CelestiaConfig = celestiaConfig
 	c.Log = logger
 
-	signerFactory, from, err := signer.SignerFactoryFromPrivateKey(celestiaConfig.PrivateKey)
+	l1Client, err := client.DialEthClient(ctx, cfg.L1Rpc)
+	if err != nil {
+		log.Error("failed to dial eth client", "err", err)
+		return err
+	}
+	c.ethClients = l1Client
+
+	signerFactory, from, err := signer.SignerFactoryFromPrivateKey(cfg.PrivateKey)
 	if err != nil {
 		log.Error(fmt.Errorf("could not init signer: %w", err).Error())
 		return err
 	}
-	c.Signer = signerFactory(celestiaConfig.L1ChainID)
+	c.Signer = signerFactory(cfg.L1ChainID)
 	c.From = from
 
 	if err := c.initDA(celestiaConfig); err != nil {
@@ -153,7 +159,7 @@ func (c *CelestiaRollup) SendTransaction(ctx context.Context, data []byte) ([]by
 
 func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, error) {
 	c.Log.Info("building Calldata transaction candidate", "size", len(data))
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.Config.BlockTime)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.CelestiaConfig.BlockTime)*time.Second)
 	ids, err := c.DAClient.Client.Submit(ctx, [][]byte{data}, -1, c.DAClient.Namespace)
 	cancel()
 	if err == nil && len(ids) == 1 {
@@ -191,7 +197,7 @@ func (c *CelestiaRollup) DataFromEVMTransactions(txHashStr string) (eth.Data, er
 				switch data[0] {
 				case DerivationVersionCelestia:
 					log.Info("celestia: blob request", "id", hex.EncodeToString(tx.Data()))
-					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.Config.BlockTime)*time.Second)
+					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.CelestiaConfig.BlockTime)*time.Second)
 					blobs, err := c.DAClient.Client.Get(ctx, [][]byte{data[1:]}, c.DAClient.Namespace)
 					cancel()
 					if err != nil {
@@ -234,7 +240,7 @@ func (c *CelestiaRollup) craftTx(ctx context.Context, candidate eth.TxCandidate)
 	gasFeeCap := calcGasFeeCap(baseFee, tip)
 
 	txMessage := &types.DynamicFeeTx{
-		ChainID:   c.CelestiaConfig.L1ChainID,
+		ChainID:   c.Config.L1ChainID,
 		To:        candidate.To,
 		GasTipCap: tip,
 		GasFeeCap: gasFeeCap,
