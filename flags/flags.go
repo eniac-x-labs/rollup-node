@@ -2,6 +2,7 @@ package flags
 
 import (
 	"fmt"
+
 	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	"github.com/urfave/cli/v2"
 
@@ -21,11 +22,29 @@ var requiredFlags = []cli.Flag{}
 
 var optionalFlags = []cli.Flag{}
 
+var exposedAddress = []cli.Flag{
+	&cli.StringFlag{
+		Name:    "rpcAddress",
+		Usage:   "Listen address for rpc and sdk",
+		EnvVars: PrefixEnvVar(EnvVarPrefix, "RPC_ADDRESS"),
+	},
+	&cli.StringFlag{
+		Name:    "apiAddress",
+		Usage:   "Listen address for web server",
+		EnvVars: PrefixEnvVar(EnvVarPrefix, "API_ADDRESS"),
+	},
+}
+
+func PrefixEnvVar(prefix, suffix string) []string {
+	return []string{prefix + "_" + suffix}
+}
+
 func init() {
 	optionalFlags = append(optionalFlags, cli_config.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, metrics.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, eip4844.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, celestia.CLIFlags(EnvVarPrefix)...)
+	optionalFlags = append(optionalFlags, exposedAddress...)
 
 	Flags = append(requiredFlags, optionalFlags...)
 }

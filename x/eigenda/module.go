@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -52,6 +53,10 @@ func NewEigenDAClient(cfg *EigenDAConfig) (IEigenDA, error) {
 }
 
 func (m *EigenDAClient) RetrieveBlob(ctx context.Context, BatchHeaderHash []byte, BlobIndex uint32) ([]byte, error) {
+	if m.DisperserCli == nil {
+		return nil, errors.New("eigendDA disperserCli is nil")
+	}
+
 	reply, err := m.DisperserCli.RetrieveBlob(ctx, &disperser.RetrieveBlobRequest{
 		BatchHeaderHash: BatchHeaderHash,
 		BlobIndex:       BlobIndex,
@@ -68,6 +73,9 @@ func (m *EigenDAClient) RetrieveBlob(ctx context.Context, BatchHeaderHash []byte
 
 func (m *EigenDAClient) DisperseBlobAndGetBlobInfo(ctx context.Context, txData []byte) (*disperser.BlobInfo, error) {
 	m.logger.Info("Attempting to disperse blob to EigenDA")
+	if m.DisperserCli == nil {
+		return nil, errors.New("eigendDA disperserCli is nil")
+	}
 
 	// encode modulo bn254
 	encodedTxData := codec.ConvertByPaddingEmptyByte(txData)
@@ -127,7 +135,11 @@ func (m *EigenDAClient) DisperseBlobAndGetBlobInfo(ctx context.Context, txData [
 }
 
 func (m *EigenDAClient) DisperseBlob(ctx context.Context, txData []byte) ([]byte, error) {
-	m.logger.Info("Attempting to disperse blob to EigenDA")
+	m.logger.Info("Attempting to disperse blob to EigenDA", "txDataHex", hex.EncodeToString(txData))
+
+	if m.DisperserCli == nil {
+		return nil, errors.New("eigendDA disperserCli is nil")
+	}
 
 	// encode modulo bn254
 	encodedTxData := codec.ConvertByPaddingEmptyByte(txData)
@@ -135,12 +147,14 @@ func (m *EigenDAClient) DisperseBlob(ctx context.Context, txData []byte) ([]byte
 	disperseReq := &disperser.DisperseBlobRequest{
 		Data: encodedTxData,
 	}
+
 	disperseRes, err := m.DisperserCli.DisperseBlob(ctx, disperseReq)
 
 	if err != nil || disperseRes == nil {
 		m.logger.Error("Unable to disperse blob to EigenDA, aborting", "err", err)
 		return nil, err
 	}
+
 	m.logger.Debug("daClient.DisperseBlob", "disperseRes", disperseRes)
 	m.logger.Debug("daClient.DisperseBlob", "disperseRes.Result", disperseRes.Result)
 	if disperseRes.Result == disperser.BlobStatus_UNKNOWN ||
@@ -156,6 +170,10 @@ func (m *EigenDAClient) DisperseBlob(ctx context.Context, txData []byte) ([]byte
 }
 
 func (m *EigenDAClient) GetBlobStatus(ctx context.Context, reqID []byte) (disperser.BlobStatus, *disperser.BlobInfo, error) {
+	if m.DisperserCli == nil {
+		return -1, nil, errors.New("eigendDA disperserCli is nil")
+	}
+
 	base64RequestID := base64.StdEncoding.EncodeToString(reqID)
 	log.Info("GetBlobStatus", "reqID", reqID, "reqIDBase64", base64RequestID)
 
