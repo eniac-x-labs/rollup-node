@@ -9,7 +9,6 @@ import (
 )
 
 type ParseEip4844Config struct {
-	L1Rpc                  string `toml:"l1Rpc"`
 	PrivateKey             string `toml:"privateKey"`
 	L1ChainID              string `toml:"l1ChainID"` // *bigInt
 	UseBlobs               bool   `toml:"useBlobs"`
@@ -22,11 +21,6 @@ type ParseEip4844Config struct {
 
 	// BlockTime CLI Config
 	BlockTime uint64 `toml:"blockTime"`
-
-	// Metrics CLI Config
-	Enable     bool   `toml:"enable"`
-	ListenAddr string `toml:"listenAddr"`
-	ListenPort int    `toml:"listenPort"`
 
 	// Log CLI Config
 	Level      int    `toml:"level"`
@@ -48,9 +42,7 @@ func ProcessEip4844Config(parseConf *ParseEip4844Config, logger log.Logger) (*Ei
 
 	return &Eip4844Config{
 		eip4844Config: CLIConfig{
-			L1Rpc:      parseConf.L1Rpc,
-			PrivateKey: parseConf.PrivateKey,
-			L1ChainID:  l1ChainID,
+			L1ChainID: l1ChainID,
 			DSConfig: &DataSourceConfig{
 				l1Signer:          signer,
 				batchInboxAddress: common.HexToAddress(parseConf.BatchInboxAddress),

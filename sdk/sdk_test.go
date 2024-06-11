@@ -18,8 +18,9 @@ func Test_Sdk(t *testing.T) {
 	ast.NoError(err)
 	t.Log(res[0].(string))
 	t.Log("2")
-
-	resByte, err := sdk.RetrieveFromDAWithType(_common.EigenDAType, "MWNjNDc5YmVjMTBmNTFkYjVkMTUzNjJiMzg2ZTNmNGU2ZDhlY2E4MmRlZGViOTAyMWNmYWYyZjNkMzI3ZjJhNS0zMTM3MzEzNzM4MzMzNDM1MzAzMDM4MzIzMDM3MzkzNDM0MzYzODJmMzAyZjMzMzMyZjMxMmYzMzMzMmZlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1")
+	//arg1 := "MWNjNDc5YmVjMTBmNTFkYjVkMTUzNjJiMzg2ZTNmNGU2ZDhlY2E4MmRlZGViOTAyMWNmYWYyZjNkMzI3ZjJhNS0zMTM3MzEzNzM4MzMzNDM1MzAzMDM4MzIzMDM3MzkzNDM0MzYzODJmMzAyZjMzMzMyZjMxMmYzMzMzMmZlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1"
+	arg2 := "OGEyYTVjOWI3Njg4MjdkZTVhOTU1MmMzOGEwNDRjNjY5NTljNjhmNmQyZjIxYjUyNjBhZjU0ZDJmODdkYjgyNy0zMTM3MzEzODMwMzkzMTMyMzczNjM2MzgzOTMzMzczNDM2MzkzMTJmMzEyZjMzMzMyZjMwMmYzMzMzMmZlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1"
+	resByte, err := sdk.RetrieveFromDAWithType(_common.EigenDAType, arg2)
 	ast.NoError(err)
 	t.Logf("%s", resByte)
 	t.Log("3")

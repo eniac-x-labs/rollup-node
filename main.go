@@ -4,9 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/eniac-x-labs/rollup-node/api"
 	"os"
 	"os/signal"
+
+	"github.com/eniac-x-labs/rollup-node/api"
 
 	_config "github.com/eniac-x-labs/rollup-node/config"
 	_core "github.com/eniac-x-labs/rollup-node/core"
@@ -26,6 +27,10 @@ func main() {
 	flag.StringVar(&rpcAddress, "rpcAddress", "", "listen address for rpc and sdk")
 	flag.StringVar(&apiAddress, "apiAddress", "", "listen address for web server")
 	flag.Parse()
+
+	if len(rpcAddress) == 0 && len(apiAddress) == 0 {
+		flag.Usage()
+	}
 
 	rollupModule, err := _core.NewRollupModuleWithConfig(ctx, _config.NewRollupConfig())
 	if err != nil {

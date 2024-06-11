@@ -15,17 +15,17 @@ import (
 )
 
 const (
-	L1RPCFlagName      = "l1-eth-rpc"
-	PrivateKeyFlagName = "private-key"
-	L1ChainIdFlagName  = "l1.chain-id"
-	DaRpcFlagName      = "celestia.da.rpc"
+	defaultBlockTime = uint64(2)
+
+	DaRpcFlagName = "celestia.da.rpc"
 	// AuthTokenFlagName defines the flag for the auth token
 	AuthTokenFlagName = "celestia.da.auth_token"
 	// NamespaceFlagName defines the flag for the namespace
 	NamespaceFlagName           = "celestia.da.namespace"
-	BatcherAddressFlagName      = "celestia..batcher-address"
-	BatchInboxAddressFlagName   = "celestia..batch-inbox-address"
+	BatcherAddressFlagName      = "celestia.batcher-address"
+	BatchInboxAddressFlagName   = "celestia.batch-inbox-address"
 	EthFallbackDisabledFlagName = "celestia.eth_fallback_disabled"
+	BlockTime                   = "celestia.block-time"
 )
 
 var (
@@ -54,24 +54,6 @@ func Check(address string) error {
 
 func CLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{
-			Name:     L1RPCFlagName,
-			Usage:    "The rpc url of l1.",
-			Required: true,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "L1_ETH_RPC"),
-		},
-		&cli.StringFlag{
-			Name:     PrivateKeyFlagName,
-			Usage:    "The private key to use with the service. Must not be used with mnemonic.",
-			Required: true,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "PRIVATE_KEY"),
-		},
-		&cli.Uint64Flag{
-			Name:     L1ChainIdFlagName,
-			Usage:    "The chain id of l1.",
-			Required: false,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "L1_CHAIN_ID"),
-		},
 		&cli.StringFlag{
 			Name:    DaRpcFlagName,
 			Usage:   "dial address of data availability grpc client",
@@ -105,6 +87,13 @@ func CLIFlags(envPrefix string) []cli.Flag {
 			Required: false,
 			EnvVars:  eth.PrefixEnvVar(envPrefix, "CELESTIA_BATCH_INBOX_ADDRESS"),
 		},
+		&cli.Uint64Flag{
+			Name:     BlockTime,
+			Usage:    "block time of celestia.",
+			Required: false,
+			Value:    defaultBlockTime,
+			EnvVars:  eth.PrefixEnvVar(envPrefix, "CELESTIA_BLOCK_TIME"),
+		},
 	}
 }
 
@@ -125,9 +114,7 @@ func (c Config) Check() error {
 }
 
 type CLIConfig struct {
-	L1Rpc               string
-	L1ChainID           *big.Int
-	PrivateKey          string
+	BlockTime           uint64
 	DaRpc               string
 	AuthToken           string
 	Namespace           string
@@ -153,9 +140,9 @@ func NewCLIConfig() CLIConfig {
 	}
 }
 
-func ReadCLIConfig(ctx *cli.Context) CLIConfig {
+func ReadCLIConfig(ctx *cli.Context, l1ChainId *big.Int) CLIConfig {
 
-	signer := types.NewCancunSigner(new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)))
+	signer := types.NewCancunSigner(l1ChainId)
 
 	dsConfig := DataSourceConfig{
 		l1Signer:          signer,
@@ -163,9 +150,7 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		batcherAddr:       common.HexToAddress(ctx.String(BatcherAddressFlagName)),
 	}
 	return CLIConfig{
-		L1Rpc:               ctx.String(L1RPCFlagName),
-		L1ChainID:           new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)),
-		PrivateKey:          ctx.String(PrivateKeyFlagName),
+		BlockTime:           defaultBlockTime,
 		DaRpc:               ctx.String(DaRpcFlagName),
 		AuthToken:           ctx.String(AuthTokenFlagName),
 		Namespace:           ctx.String(NamespaceFlagName),

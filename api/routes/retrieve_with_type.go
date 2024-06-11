@@ -22,8 +22,8 @@ func (h Routes) RetrieveWithTypePathHandler(w http.ResponseWriter, r *http.Reque
 
 	res, err := h.svc.RetrieveFromDAWithType(req.DAType, req.Args)
 	if err != nil {
-		http.Error(w, "Internal server error rollup with type", http.StatusInternalServerError)
-		h.logger.Error("Unable to rollup with type", "err", err.Error())
+		http.Error(w, "Internal server error retrieve with type", http.StatusInternalServerError)
+		h.logger.Error("Unable to retrieve with type", "err", err.Error())
 		return
 	}
 

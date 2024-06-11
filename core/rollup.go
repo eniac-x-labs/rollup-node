@@ -73,9 +73,11 @@ func RunRollupModuleForCLI(cliCtx *cli.Context, shutdown context.CancelCauseFunc
 		log.Error("Run Rollup Module failed", "err", err)
 		return nil, err
 	}
+	log.Info("finished new rollup module")
 
 	rpcAddress := cliCtx.String("rpcAddress")
 	apiAddress := cliCtx.String("apiAddress")
+	log.Debug("exposed address config", "rpcAddress", rpcAddress, "apiAddress", apiAddress)
 
 	if len(rpcAddress) != 0 {
 		go _rpc.NewAndStartRollupRpcServer(cliCtx.Context, rpcAddress, rollupModule)
@@ -134,12 +136,16 @@ func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, e
 	if err != nil {
 		log.Error("NewCelestiaRollup failed", "err", err)
 		return nil, err
+	} else {
+		log.Debug("finish new celestiaDA")
 	}
 
 	eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
 	if err != nil {
 		log.Error("NewEip4844Rollup failed", "err", err)
 		return nil, err
+	} else {
+		log.Debug("finish new eip4844 rollup")
 	}
 
 	conf := _config.NewRollupConfig() // config for anytrust & eigenda & nearda
@@ -147,21 +153,28 @@ func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, e
 	if err != nil {
 		log.Error("NewAnytrustRollup failed", "err", err)
 		return nil, err
+	} else {
+		log.Debug("finish new anytrustDA")
 	}
 
 	eigenDA, err := eigenda.NewEigenDAClient(conf.EigenDAConfig)
 	if err != nil {
 		log.Error("NewEigenRollup failed", "err", err)
 		return nil, err
+	} else {
+		log.Debug("finish new eigenDA")
 	}
 
 	nearDA, err := nearda.NewNearDAClient(conf.NearDAConfig)
 	if err != nil {
 		log.Error("NewNearRollup failed", "err", err)
 		return nil, err
+	} else {
+		log.Debug("finish new nearDA")
 	}
 
 	return &RollupModule{
+		ctx:        cliCtx.Context,
 		anytrustDA: anytrustDA,
 		celestiaDA: celestiaDA,
 		eigenDA:    eigenDA,

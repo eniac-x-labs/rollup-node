@@ -10,7 +10,6 @@ import (
 
 // corresponding celestia.toml
 type ParseCelestiaConfig struct {
-	L1Rpc               string `toml:"l1Rpc"`
 	L1ChainID           string `toml:"l1ChainID"`
 	PrivateKey          string `toml:"privateKey"`
 	DaRpc               string `toml:"daRpc"`
@@ -25,11 +24,6 @@ type ParseCelestiaConfig struct {
 	// BlockTime CLI Config
 	BlockTime uint64 `toml:"blockTime"`
 
-	// Metrics CLI Config
-	Enable     bool   `toml:"enable"`
-	ListenAddr string `toml:"listenAddr"`
-	ListenPort int    `toml:"listenPort"`
-
 	L1ChainIdFlagName uint64 `toml:"l1ChainIdFlagName"`
 }
 
@@ -40,14 +34,11 @@ type CelestiaConfig struct {
 }
 
 func ProcessCelestiaConfig(parseConf *ParseCelestiaConfig, logger log.Logger) (*CelestiaConfig, error) {
-	l1ChainID, _ := new(big.Int).SetString(parseConf.L1ChainID, 10)
+
 	signer := types.NewCancunSigner(new(big.Int).SetUint64(parseConf.L1ChainIdFlagName))
 
 	return &CelestiaConfig{
 		celestiaConfig: CLIConfig{
-			L1Rpc:               parseConf.L1Rpc,
-			L1ChainID:           l1ChainID,
-			PrivateKey:          parseConf.PrivateKey,
 			DaRpc:               parseConf.DaRpc,
 			AuthToken:           parseConf.AuthToken,
 			Namespace:           parseConf.Namespace,

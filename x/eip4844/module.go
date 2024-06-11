@@ -58,7 +58,7 @@ func NewEip4844Rollup(cliCtx *cli.Context, logger log.Logger) (*Eip4844Rollup, e
 	if err != nil {
 		return nil, err
 	}
-	eip4844Config := ReadCLIConfig(cliCtx)
+	eip4844Config := ReadCLIConfig(cliCtx, cfg.L1ChainID)
 
 	return Eip4844ServiceFromCLIConfig(cliCtx.Context, cfg, eip4844Config, logger)
 }
@@ -90,7 +90,14 @@ func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.C
 	e.Eip4844Config = eip4844Config
 	e.Log = logger
 
-	signerFactory, from, err := signer.SignerFactoryFromPrivateKey(eip4844Config.PrivateKey)
+	l1Client, err := client.DialEthClient(ctx, cfg.L1Rpc)
+	if err != nil {
+		log.Error("failed to dial eth client", "err", err)
+		return err
+	}
+	e.ethClients = l1Client
+
+	signerFactory, from, err := signer.SignerFactoryFromPrivateKey(cfg.PrivateKey)
 	if err != nil {
 		log.Error(fmt.Errorf("could not init signer: %w", err).Error())
 		return err
