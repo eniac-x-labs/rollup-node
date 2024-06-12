@@ -1,6 +1,6 @@
-rpcUrl = "http://localhost:9876"
-restfulUrl = "http://127.0.0.1:9877"
-dataRetentionTime = 9223372036854775807
+rpc_url = "http://localhost:9876"
+restful_url = "http://127.0.0.1:9877"
+data_retention_time = 9223372036854775807
 
-randomMessageSize = 0
-signingKey = ""
+random_message_size = 0
+signing_key = ""
