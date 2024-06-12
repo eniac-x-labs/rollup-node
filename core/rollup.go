@@ -247,7 +247,7 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 			return nil, _errors.DANotPreparedErr
 		}
 
-		txHash, err := r.eip4844.SendTransaction(data)
+		txHash, err := r.eip4844.SendTransaction(r.ctx, data)
 		if err != nil {
 			log.Error(_errors.RollupFailedMsg, "da-type", "eip4844", "err", err)
 			return nil, err

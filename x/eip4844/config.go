@@ -9,8 +9,6 @@ import (
 )
 
 type ParseEip4844Config struct {
-	PrivateKey             string `toml:"privateKey"`
-	L1ChainID              string `toml:"l1ChainID"` // *bigInt
 	UseBlobs               bool   `toml:"useBlobs"`
 	L1BeaconAddr           string `toml:"l1BeaconAddr"`
 	ShouldFetchAllSidecars bool   `toml:"shouldFetchAllSidecars"`
@@ -37,12 +35,10 @@ type Eip4844Config struct {
 }
 
 func ProcessEip4844Config(parseConf *ParseEip4844Config, logger log.Logger) (*Eip4844Config, error) {
-	l1ChainID, _ := new(big.Int).SetString(parseConf.L1ChainID, 10)
 	signer := types.NewCancunSigner(new(big.Int).SetUint64(parseConf.L1ChainIdFlagName))
 
 	return &Eip4844Config{
 		eip4844Config: CLIConfig{
-			L1ChainID: l1ChainID,
 			DSConfig: &DataSourceConfig{
 				l1Signer:          signer,
 				batchInboxAddress: common.HexToAddress(parseConf.BatchInboxAddress),

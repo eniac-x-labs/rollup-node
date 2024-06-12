@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
+	"math/big"
 	"sync/atomic"
 
 	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
@@ -102,14 +105,16 @@ func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.C
 		log.Error(fmt.Errorf("could not init signer: %w", err).Error())
 		return err
 	}
-	e.Signer = signerFactory(eip4844Config.L1ChainID)
+	e.Signer = signerFactory(cfg.L1ChainID)
 	e.From = from
 
+	var fb []eth.BlobSideCarsFetcher
 	bCl := client.NewBasicHTTPClient(eip4844Config.L1BeaconAddr)
+	fb = append(fb, eth.NewBeaconHTTPClient(bCl))
 	beaconCfg := eth.L1BeaconClientConfig{
 		FetchAllSidecars: eip4844Config.ShouldFetchAllSidecars,
 	}
-	e.l1BeaconClient = eth.NewL1BeaconClient(bCl, beaconCfg)
+	e.l1BeaconClient = eth.NewL1BeaconClient(eth.NewBeaconHTTPClient(bCl), beaconCfg, fb...)
 
 	e.driverCtx = ctx
 
@@ -119,7 +124,7 @@ func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.C
 // SendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
 // It currently uses the underlying `txmgr` to handle transaction sending & price management.
 // This is a blocking method. It should not be called concurrently.
-func (e *Eip4844Rollup) SendTransaction(data []byte) ([]byte, error) {
+func (e *Eip4844Rollup) SendTransaction(ctx context.Context, data []byte) ([]byte, error) {
 	// Do the gas estimation offline. A value of 0 will cause the [txmgr] to estimate the gas limit.
 
 	var candidate *eth.TxCandidate
@@ -143,7 +148,7 @@ func (e *Eip4844Rollup) SendTransaction(data []byte) ([]byte, error) {
 		candidate.GasLimit = intrinsicGas
 	}
 
-	tx, err := e.craftTx(*candidate)
+	tx, err := e.craftTx(ctx, *candidate)
 	if err != nil {
 		e.Log.Error("Failed to create a transaction", "err", err)
 		return nil, err
@@ -197,7 +202,7 @@ func (e *Eip4844Rollup) DataFromEVMTransactions(ctx context.Context, txHashStr s
 	_, hashes := dataAndHashesFromTxs(txs, e.Eip4844Config.DSConfig, e.Log)
 	if len(hashes) == 0 {
 		// there are no blobs to fetch so we can return immediately
-		return nil, nil
+		return nil, fmt.Errorf("this transaction has no blob data, tx_hash=%s", txHashStr)
 	}
 
 	ref := eth.L1BlockRef{
@@ -229,7 +234,7 @@ func (e *Eip4844Rollup) DataFromEVMTransactions(ctx context.Context, txHashStr s
 	return datas[0], nil
 }
 
-func (e *Eip4844Rollup) craftTx(candidate eth.TxCandidate) (*types.Transaction, error) {
+func (e *Eip4844Rollup) craftTx(ctx context.Context, candidate eth.TxCandidate) (*types.Transaction, error) {
 	e.Log.Debug("crafting Transaction", "blobs", len(candidate.Blobs), "calldata_size", len(candidate.TxData))
 
 	gasLimit := candidate.GasLimit
@@ -246,6 +251,31 @@ func (e *Eip4844Rollup) craftTx(candidate eth.TxCandidate) (*types.Transaction, 
 		}
 	}
 
+	nonce, err := e.ethClients.NonceAt(ctx, e.From, nil)
+	if err != nil {
+		e.Log.Error("failed to get account nonce", "err", err)
+		return nil, err
+	}
+
+	tip, err := e.ethClients.SuggestGasTipCap(ctx)
+	if err != nil {
+		e.Log.Error(fmt.Errorf("failed to fetch the suggested gas tip cap: %w", err).Error())
+		return nil, err
+	}
+
+	header, err := e.ethClients.HeaderByNumber(ctx, nil)
+	if err != nil {
+		e.Log.Error(fmt.Errorf("failed to fetch the suggested base fee: %w", err).Error())
+		return nil, err
+	}
+	baseFee := header.BaseFee
+	gasFeeCap := calcGasFeeCap(baseFee, tip)
+
+	var blobFee *big.Int
+	if header.ExcessBlobGas != nil {
+		blobFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
+	}
+
 	var txMessage types.TxData
 	if sidecar != nil {
 		message := &types.BlobTx{
@@ -254,6 +284,10 @@ func (e *Eip4844Rollup) craftTx(candidate eth.TxCandidate) (*types.Transaction, 
 			Gas:        gasLimit,
 			BlobHashes: blobHashes,
 			Sidecar:    sidecar,
+			Nonce:      nonce,
+			GasTipCap:  new(uint256.Int).SetUint64(tip.Uint64()),
+			GasFeeCap:  new(uint256.Int).SetUint64(gasFeeCap.Uint64()),
+			BlobFeeCap: new(uint256.Int).SetUint64(blobFee.Uint64()),
 		}
 		txMessage = message
 	}
@@ -303,4 +337,11 @@ func (e *Eip4844Rollup) getTransactionAndBlockByTxHash(ctx context.Context, txHa
 	}
 
 	return tx, header, nil
+}
+
+func calcGasFeeCap(baseFee, gasTipCap *big.Int) *big.Int {
+	return new(big.Int).Add(
+		gasTipCap,
+		new(big.Int).Mul(baseFee, big.NewInt(2)),
+	)
 }
