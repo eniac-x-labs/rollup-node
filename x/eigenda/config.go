@@ -24,6 +24,7 @@ const (
 	StatusQueryRetryIntervalFlag = "statusQueryRetryInterval"
 )
 
+// EigenDAEnvFlags The env flag is like prefix_flag, with all letters in uppercase.
 var EigenDAEnvFlags = []string{
 	RpcFlag,
 	StatusQueryTimeoutFlag,

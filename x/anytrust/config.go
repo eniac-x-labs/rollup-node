@@ -21,6 +21,7 @@ const (
 	SigningKeyFlag         = "signingKey"
 )
 
+// AnytrustDAEnvFlags The env flag is like prefix_flag, with all letters in uppercase.
 var AnytrustDAEnvFlags = []string{
 	RpcUrlFlag,
 	RestfulUrlFlag,

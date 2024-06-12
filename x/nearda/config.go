@@ -16,6 +16,7 @@ const (
 	NsFlag       = "ns"
 )
 
+// NearDAEnvFlags The env flag is like prefix_flag, with all letters in uppercase.
 var NearDAEnvFlags = []string{
 	AccountFlag,
 	ContractFlag,

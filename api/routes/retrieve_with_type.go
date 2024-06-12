@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -22,7 +23,7 @@ func (h Routes) RetrieveWithTypePathHandler(w http.ResponseWriter, r *http.Reque
 
 	res, err := h.svc.RetrieveFromDAWithType(req.DAType, req.Args)
 	if err != nil {
-		http.Error(w, "Internal server error retrieve with type", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Internal server error retrieve with type, err msg: %s", err.Error()), http.StatusInternalServerError)
 		h.logger.Error("Unable to retrieve with type", "err", err.Error())
 		return
 	}

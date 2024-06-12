@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync/atomic"
 
+	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/eniac-x-labs/rollup-node/api"
 
 	"github.com/eniac-x-labs/anytrustDA/das"
@@ -331,17 +332,26 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqIDBase64", reqIDBase64, "da-type", "eigenDA")
 			return nil, err
 		}
-		batchHeaderHash, blobIndex := info.BlobVerificationProof.GetBatchMetadata().GetBatchHeaderHash(), info.GetBlobVerificationProof().GetBlobIndex()
-		log.Debug("get from eigenDA", "status", status.String(), "reqIDBase64", reqIDBase64, "batchHeaderHash", hex.EncodeToString(batchHeaderHash), "blobIndex", blobIndex)
+		if status == disperser.BlobStatus_FINALIZED || status == disperser.BlobStatus_CONFIRMED {
+			// data blob dispersed to eigenDA successfully, then retrieve it
+			batchHeaderHash, blobIndex := info.BlobVerificationProof.GetBatchMetadata().GetBatchHeaderHash(), info.GetBlobVerificationProof().GetBlobIndex()
+			log.Debug("get from eigenDA", "status", status.String(), "reqIDBase64", reqIDBase64, "batchHeaderHash", hex.EncodeToString(batchHeaderHash), "blobIndex", blobIndex)
 
-		res, err := r.eigenDA.RetrieveBlob(r.ctx, batchHeaderHash, blobIndex)
-		if err != nil {
-			log.Error(_errors.GetFromDAErrMsg, "da-type", "eigenDA", "err", err)
-			return nil, err
+			res, err := r.eigenDA.RetrieveBlob(r.ctx, batchHeaderHash, blobIndex)
+			if err != nil {
+				log.Error(_errors.GetFromDAErrMsg, "da-type", "eigenDA", "err", err)
+				return nil, err
+			}
+
+			log.Debug("get from eigenDA successfully", "reqIDBase64", reqIDBase64)
+			return res, nil
+		} else if status == disperser.BlobStatus_FAILED || status == disperser.BlobStatus_UNKNOWN {
+			// EigenDA blob dispersal failed in processing
+			return nil, errors.New("EigenDA blob dispersal failed in processing")
 		}
 
-		log.Debug("get from eigenDA successfully", "reqIDBase64", reqIDBase64)
-		return res, nil
+		// Still waiting for confirmation from EigenDA
+		return nil, errors.New("Still waiting for confirmation from EigenDA, please try later")
 	case _common.Eip4844Type:
 		if r.eip4844 == nil {
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eip4844")
