@@ -187,6 +187,9 @@ func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, e
 }
 
 func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, error) {
+	if data == nil || len(data) == 0 {
+		return nil, errors.New("rollup data cannot be empty")
+	}
 	res := make([]interface{}, 0)
 	switch daType {
 	case _common.AnytrustType:
@@ -282,8 +285,13 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrustDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		hashHex := args.(string)
+		hashHex, ok := args.(string)
+		if !ok {
+			log.Error("args is not string type")
+			return nil, _errors.WrongArgTypeErr
+		}
 		log.Debug("receive rollup request with anytrustDA", "hashHex", hashHex)
+
 		res, err := r.anytrustDA.ReadDA(r.ctx, hashHex)
 		if err != nil {
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "hashHex", hashHex, "da-type", "anytrustDA")
@@ -297,7 +305,11 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "celestiaDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		reqTxHashStr := args.(string)
+		reqTxHashStr, ok := args.(string)
+		if !ok {
+			log.Error("args is not string type")
+			return nil, _errors.WrongArgTypeErr
+		}
 		log.Debug("request get from celestiaDA", "reqTxHashStr", reqTxHashStr)
 
 		res, err := r.celestiaDA.DataFromEVMTransactions(reqTxHashStr)
@@ -357,7 +369,11 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "eip4844")
 			return nil, _errors.DANotPreparedErr
 		}
-		reqTxHashStr := args.(string)
+		reqTxHashStr, ok := args.(string)
+		if !ok {
+			log.Error("args is not string type")
+			return nil, _errors.WrongArgTypeErr
+		}
 		log.Debug("request get from eip4844", "reqTxHashStr", reqTxHashStr)
 
 		res, err := r.eip4844.DataFromEVMTransactions(r.ctx, reqTxHashStr)
@@ -373,7 +389,11 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "nearDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		frameRefBase64 := args.(string)
+		frameRefBase64, ok := args.(string)
+		if !ok {
+			log.Error("args is not string type")
+			return nil, _errors.WrongArgTypeErr
+		}
 		frameRefBytes, err := base64.StdEncoding.DecodeString(frameRefBase64)
 		if err != nil {
 			log.Error("Error decoding Base64 for near da:", "err", err)
