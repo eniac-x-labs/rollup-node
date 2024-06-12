@@ -40,6 +40,7 @@ type EthClient interface {
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 	TxByHash(common.Hash) (*types.Transaction, error)
+	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
 	Close()
 }
 
@@ -185,6 +186,14 @@ func (c *clnt) TxByHash(hash common.Hash) (*types.Transaction, error) {
 	}
 
 	return tx, nil
+}
+
+// NonceAt returns the account nonce of the given account.
+// The block number can be nil, in which case the nonce is taken from the latest known block.
+func (c *clnt) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
+	var result hexutil.Uint64
+	err := c.rpc.CallContext(ctx, &result, "eth_getTransactionCount", account, toBlockNumArg(blockNumber))
+	return uint64(result), err
 }
 
 // CallContract executes a message call transaction, which is directly executed in the VM

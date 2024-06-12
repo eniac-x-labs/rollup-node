@@ -56,7 +56,6 @@ func CLIFlags(envPrefix string) []cli.Flag {
 }
 
 type CLIConfig struct {
-	L1ChainID              *big.Int
 	DSConfig               *DataSourceConfig
 	UseBlobs               bool
 	L1BeaconAddr           string

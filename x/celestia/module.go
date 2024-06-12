@@ -161,6 +161,8 @@ func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, err
 	c.Log.Info("building Calldata transaction candidate", "size", len(data))
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.CelestiaConfig.BlockTime)*time.Second)
 	ids, err := c.DAClient.Client.Submit(ctx, [][]byte{data}, -1, c.DAClient.Namespace)
+	fmt.Println(ids)
+	fmt.Println(err)
 	cancel()
 	if err == nil && len(ids) == 1 {
 		c.Log.Info("celestia: blob successfully submitted", "id", hex.EncodeToString(ids[0]))
@@ -178,7 +180,7 @@ func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, err
 	}, nil
 }
 
-func (c *CelestiaRollup) DataFromEVMTransactions(txHashStr string) (eth.Data, error) {
+func (c *CelestiaRollup) DataFromEVMTransactions(ctx context.Context, txHashStr string) (eth.Data, error) {
 	var out eth.Data
 
 	tx, err := c.ethClients.TxByHash(common.HexToHash(txHashStr))
@@ -197,8 +199,8 @@ func (c *CelestiaRollup) DataFromEVMTransactions(txHashStr string) (eth.Data, er
 				switch data[0] {
 				case DerivationVersionCelestia:
 					log.Info("celestia: blob request", "id", hex.EncodeToString(tx.Data()))
-					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.CelestiaConfig.BlockTime)*time.Second)
-					blobs, err := c.DAClient.Client.Get(ctx, [][]byte{data[1:]}, c.DAClient.Namespace)
+					ctxT, cancel := context.WithTimeout(ctx, 30*time.Duration(c.CelestiaConfig.BlockTime)*time.Second)
+					blobs, err := c.DAClient.Client.Get(ctxT, [][]byte{data[1:]}, c.DAClient.Namespace)
 					cancel()
 					if err != nil {
 						return nil, fmt.Errorf("celestia: failed to resolve frame: %w", err)
