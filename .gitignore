@@ -28,3 +28,5 @@ go.work
 rollupNode
 rollup-node
 /cmd/cmd
+
+x/anytrust/das_storage_test

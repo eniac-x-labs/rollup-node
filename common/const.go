@@ -6,4 +6,5 @@ const (
 	EigenDAType
 	Eip4844Type
 	NearDAType
+	AnytrustCommitteeType
 )
