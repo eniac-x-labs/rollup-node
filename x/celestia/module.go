@@ -161,8 +161,6 @@ func (c *CelestiaRollup) calldataTxCandidate(data []byte) (*eth.TxCandidate, err
 	c.Log.Info("building Calldata transaction candidate", "size", len(data))
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Duration(c.CelestiaConfig.BlockTime)*time.Second)
 	ids, err := c.DAClient.Client.Submit(ctx, [][]byte{data}, -1, c.DAClient.Namespace)
-	fmt.Println(ids)
-	fmt.Println(err)
 	cancel()
 	if err == nil && len(ids) == 1 {
 		c.Log.Info("celestia: blob successfully submitted", "id", hex.EncodeToString(ids[0]))

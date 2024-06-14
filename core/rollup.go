@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/urfave/cli/v2"
 	"os"
 	"sync/atomic"
 
@@ -17,15 +18,13 @@ import (
 	_common "github.com/eniac-x-labs/rollup-node/common"
 	"github.com/eniac-x-labs/rollup-node/common/cliapp"
 	_errors "github.com/eniac-x-labs/rollup-node/common/errors"
+	_config "github.com/eniac-x-labs/rollup-node/config"
 	_rpc "github.com/eniac-x-labs/rollup-node/rpc"
 	"github.com/eniac-x-labs/rollup-node/x/anytrust"
 	"github.com/eniac-x-labs/rollup-node/x/celestia"
 	"github.com/eniac-x-labs/rollup-node/x/eigenda"
 	"github.com/eniac-x-labs/rollup-node/x/eip4844"
 	"github.com/eniac-x-labs/rollup-node/x/nearda"
-	"github.com/urfave/cli/v2"
-
-	_config "github.com/eniac-x-labs/rollup-node/config"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -349,7 +348,6 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			return nil, _errors.WrongArgTypeErr
 		}
 		log.Debug("request get from celestiaDA", "reqTxHashStr", reqTxHashStr)
-
 		res, err := r.celestiaDA.DataFromEVMTransactions(r.ctx, reqTxHashStr)
 		if err != nil {
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqTxHashStr", reqTxHashStr, "da-type", "celestiaDA")

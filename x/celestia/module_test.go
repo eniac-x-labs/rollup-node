@@ -61,7 +61,7 @@ func TestRetrieveBlobTransaction(t *testing.T) {
 	cliCfg := &cli_config.CLIConfig{
 		L1Rpc:      "https://ethereum-sepolia-rpc.publicnode.com",
 		L1ChainID:  big.NewInt(11155111),
-		PrivateKey: "",
+		PrivateKey: "f18b433b7f3d67a7458b612852b1ec1b10930b532546e9a7852425969d92ed2b",
 	}
 
 	signer := types.NewCancunSigner(cliCfg.L1ChainID)
