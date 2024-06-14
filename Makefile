@@ -24,7 +24,7 @@ clean:
 	rm -f $(BINARY_NAME)
 
 run: build
-	./$(BINARY_NAME)
+	./$(BINARY_NAME) rollup-node --rpcAddress localhost:9000  --apiAddress localhost:9001
 
 deps:
 	$(GOGET) -v ./...
