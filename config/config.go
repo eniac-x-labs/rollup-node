@@ -20,13 +20,14 @@ import (
 )
 
 type RollupConfig struct {
-	AnytrustDAConfig *anytrust.AnytrustConfig //*AnytrustConfig
-	CelestiaDAConfig *celestia.CelestiaConfig
-	CelestiaCLICfg   *cli_config.CLIConfig
-	EigenDAConfig    *eigenda.EigenDAConfig
-	Eip4844Config    *eip4844.Eip4844Config
-	Eip4844CLICfg    *cli_config.CLIConfig
-	NearDAConfig     *nearda.NearDAConfig
+	AnytrustDAConfig        *anytrust.AnytrustConfig //*AnytrustConfig
+	AnytrustCommitteeConfig *das.DataAvailabilityConfig
+	CelestiaDAConfig        *celestia.CelestiaConfig
+	CelestiaCLICfg          *cli_config.CLIConfig
+	EigenDAConfig           *eigenda.EigenDAConfig
+	Eip4844Config           *eip4844.Eip4844Config
+	Eip4844CLICfg           *cli_config.CLIConfig
+	NearDAConfig            *nearda.NearDAConfig
 }
 
 type AnytrustConfig struct {
@@ -36,18 +37,19 @@ type AnytrustConfig struct {
 }
 
 var (
-	AnytrustConfigDir  = defaultConfigDir
-	AnytrustConfigFile = "anytrust"
-	CelestiaConfigDir  = defaultConfigDir
-	CelestiaConfigFile = "celestia"
-	EigenDAConfigDir   = defaultConfigDir
-	EigenDAConfigFile  = "eigenda"
-	Eip4844ConfigDir   = defaultConfigDir
-	Eip4844ConfigFile  = "eip4844"
-	NearDAConfigDir    = defaultConfigDir
-	NearDAConfigFile   = "nearda"
-	ApiConfigDir       = defaultConfigDir
-	ApiConfigFile      = "api"
+	AnytrustConfigDir           = defaultConfigDir
+	AnytrustConfigFile          = "anytrust"
+	AnytrustCommitteeConfigFile = "anytrust_aggregator"
+	CelestiaConfigDir           = defaultConfigDir
+	CelestiaConfigFile          = "celestia"
+	EigenDAConfigDir            = defaultConfigDir
+	EigenDAConfigFile           = "eigenda"
+	Eip4844ConfigDir            = defaultConfigDir
+	Eip4844ConfigFile           = "eip4844"
+	NearDAConfigDir             = defaultConfigDir
+	NearDAConfigFile            = "nearda"
+	ApiConfigDir                = defaultConfigDir
+	ApiConfigFile               = "api"
 )
 
 const (
@@ -63,10 +65,16 @@ const (
 )
 
 func NewRollupConfig() *RollupConfig {
-	// Anytrust
+	// Anytrust Single DAS
 	anytrustDAConf := &anytrust.AnytrustConfig{}
 	if err := PrepareConfig(AnytrustConfigDir, AnytrustConfigFile, anytrustDAConf, AnytrustPrefix, anytrust.AnytrustDAEnvFlags); err != nil {
 		log.Error("PrepareConfig failed", "da-type", "AnytrustDA")
+	}
+
+	// Anytrust DAS Committee
+	anytrustCommitteeConf := &das.DataAvailabilityConfig{}
+	if err := PrepareConfig(AnytrustConfigDir, AnytrustCommitteeConfigFile, anytrustCommitteeConf, AnytrustPrefix, []string{}); err != nil {
+		log.Error("PrepareConfig failed", "da-type", "AnytrustDA-Aggregator")
 	}
 
 	// Celestia
@@ -107,13 +115,14 @@ func NewRollupConfig() *RollupConfig {
 		log.Error("PrepareConfig failed", "da-type", "NearDA")
 	}
 	return &RollupConfig{
-		AnytrustDAConfig: anytrustDAConf,
-		CelestiaDAConfig: celestiaConfig,
-		CelestiaCLICfg:   celestiaCliCfg,
-		EigenDAConfig:    eigendaConf,
-		Eip4844Config:    eip4844Config,
-		Eip4844CLICfg:    eip4844CliCfg,
-		NearDAConfig:     neardaConf,
+		AnytrustDAConfig:        anytrustDAConf,
+		AnytrustCommitteeConfig: anytrustCommitteeConf,
+		CelestiaDAConfig:        celestiaConfig,
+		CelestiaCLICfg:          celestiaCliCfg,
+		EigenDAConfig:           eigendaConf,
+		Eip4844Config:           eip4844Config,
+		Eip4844CLICfg:           eip4844CliCfg,
+		NearDAConfig:            neardaConf,
 	}
 }
 
