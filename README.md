@@ -1,7 +1,7 @@
 # rollup-node
 
-Rollup-node is an optional module for DappLink Appchain. It integrates five DA interfaces, which are Anytrust, Celestia,
-EigenDA, NearDA, and EIP-4844.
+Rollup-node is an optional module for DappLink Appchain. It integrates five type of DAs, and six DA interfaces, which are `Anytrust`, `Celestia`,
+`EigenDA`, `NearDA`, and `EIP-4844`. AnytrustDA is divided into two types: `single anytrust DAS` and `anytrust das committee` 
 
 Users can roll up data to a specified DA and receive a receipt. They can also retrieve corresponding data from the
 specified DA based on the receipt.
@@ -14,6 +14,16 @@ off-chain DA service to be run beforehand, and NearDA requires a Near account, c
 in advance.
 
 We provide APIs and SDKs to offer users a convenient way to interact.
+
+## `da_type` corresponding to different DAs
+| DA                      | da_type |
+|:------------------------|:--------|
+| anytrust(single DAS)    | 0       |
+| celestia                | 1       |
+| eigenda                 | 2       |
+| eip-4844                | 3       |
+| nearda                  | 4       |
+| anytrust(DAS committee) | 5       |
 
 ## Run Rollup Node
 
@@ -59,6 +69,9 @@ We provide APIs and SDKs to offer users a convenient way to interact.
 - Anytrust
 
     config file: `./config/anytrust.toml` and all fields can be set by env.
+- Anytrust-DAS-Committee
+
+  config file: `./config/anytrust_aggregator.toml` 
 - Celestia
 - EigenDA
 

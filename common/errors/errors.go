@@ -9,6 +9,7 @@ const (
 	RollupFailedMsg       = "Rollup into DA failed"
 	GetFromDAErrMsg       = "Get from DA failed"
 	WrongArgTypeErrMsg    = "Arg with wrong type"
+	NilPointerErrMsg      = "got nil pointer"
 )
 
 var (
@@ -18,4 +19,5 @@ var (
 	RollupFailedErr    = errors.New(RollupFailedMsg)
 	GetFromDAErr       = errors.New(GetFromDAErrMsg)
 	WrongArgTypeErr    = errors.New(WrongArgTypeErrMsg)
+	NilPointerErr      = errors.New(NilPointerErrMsg)
 )

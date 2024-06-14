@@ -64,3 +64,19 @@ func Test_Anytrust(t *testing.T) {
 	ast.NoError(err)
 	t.Logf("%s", resRetrieve)
 }
+
+func Test_AnytrustCommittee(t *testing.T) {
+	ast := assert.New(t)
+	sdk, err := NewRollupSdk("localhost:9000")
+	ast.NoError(err)
+	ast.NotNil(sdk)
+	data := []byte("rollup data AnytrustCommitteeType")
+
+	res, err := sdk.RollupWithType(data, _common.AnytrustCommitteeType)
+	ast.NoError(err)
+	t.Log(res[0].(string))
+
+	resRetrieve, err := sdk.RetrieveFromDAWithType(_common.AnytrustCommitteeType, res[0].(string))
+	ast.NoError(err)
+	t.Logf("%s", resRetrieve)
+}

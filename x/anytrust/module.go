@@ -17,11 +17,37 @@ type IAnytrustDA interface {
 	ReadDA(ctx context.Context, hashHex string) ([]byte, error)
 }
 
-//	type AnytrustDA struct {
-//		writer das.DataAvailabilityServiceWriter
-//		reader das.DataAvailabilityServiceReader
-//		*das.LifecycleManager
-//	}
+type AnytrustDACommittee struct {
+	das.DataAvailabilityServiceWriter
+	das.DataAvailabilityServiceReader
+	*das.LifecycleManager
+}
+
+func NewAnytrustDAWithCommittee(ctx context.Context, daConfig *das.DataAvailabilityConfig, dataSigner signature.DataSignerFunc) (*AnytrustDACommittee, error) {
+	//daWriter, daReader, dasLifecycleManager, err := _das.CreateBatchPosterDAS(ctx, daConfig, dataSigner, l1client, deployInfo.SequencerInbox)
+
+	daWriter, daReader, lifeManager, err := das.CreateAggregatorComponents(ctx, daConfig, dataSigner)
+	if err != nil {
+		return nil, err
+	}
+	return &AnytrustDACommittee{
+		DataAvailabilityServiceWriter: daWriter,
+		DataAvailabilityServiceReader: daReader,
+		LifecycleManager:              lifeManager,
+	}, nil
+}
+
+func (a *AnytrustDACommittee) WriteDA(ctx context.Context, data []byte, retentionTime uint64) (*arbstate.DataAvailabilityCertificate, error) {
+	return a.Store(ctx, data, retentionTime, nil)
+}
+
+func (a *AnytrustDACommittee) ReadDA(ctx context.Context, hashHex string) ([]byte, error) {
+	if strings.HasPrefix(hashHex, "0x") {
+		hashHex = hashHex[2:]
+	}
+	return a.GetByHash(ctx, common.HexToHash(hashHex))
+}
+
 type AnytrustDA struct {
 	writer das.DataAvailabilityServiceWriter //*das.DASRPCClient
 	reader *das.RestfulDasClient

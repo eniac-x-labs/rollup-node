@@ -36,13 +36,14 @@ type RollupModule struct {
 
 	RollupConfig *_config.RollupConfig
 
-	anytrustDA anytrust.IAnytrustDA
-	celestiaDA *celestia.CelestiaRollup
-	eigenDA    eigenda.IEigenDA
-	eip4844    *eip4844.Eip4844Rollup
-	nearDA     nearda.INearDA
-	stopped    atomic.Bool
-	Log        log.Logger
+	anytrustDA        anytrust.IAnytrustDA
+	anytrustCommittee anytrust.IAnytrustDA
+	celestiaDA        *celestia.CelestiaRollup
+	eigenDA           eigenda.IEigenDA
+	eip4844           *eip4844.Eip4844Rollup
+	nearDA            nearda.INearDA
+	stopped           atomic.Bool
+	Log               log.Logger
 }
 
 func (r *RollupModule) Start(ctx context.Context) error {
@@ -68,7 +69,7 @@ func RunRollupModuleForCLI(cliCtx *cli.Context, shutdown context.CancelCauseFunc
 	logger := log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stdout, log.LevelDebug, true))
 	log.SetDefault(logger)
 
-	rollupModule, err := NewRollupModule_2(cliCtx, logger)
+	rollupModule, err := NewRollupModuleForCLI(cliCtx, logger)
 	if err != nil {
 		log.Error("Run Rollup Module failed", "err", err)
 		return nil, err
@@ -93,9 +94,18 @@ func RunRollupModuleForCLI(cliCtx *cli.Context, shutdown context.CancelCauseFunc
 }
 
 func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) (_rpc.RollupInter, error) {
+	if ctx == nil || conf == nil {
+		return nil, _errors.NilPointerErr
+	}
+
 	anytrustDA, err := anytrust.NewAnytrustDA(conf.AnytrustDAConfig)
 	if err != nil {
 		log.Error("NewAnytrustDA failed", "err", err)
+	}
+
+	anytrustDACommittee, err := anytrust.NewAnytrustDAWithCommittee(ctx, conf.AnytrustCommitteeConfig, nil)
+	if err != nil {
+		log.Error("NewAnytrustDACommittee failed", "err", err)
 	}
 
 	celestiaDA, err := celestia.NewCelestiaRollupWithConfig(ctx, conf.CelestiaCLICfg, conf.CelestiaDAConfig)
@@ -122,20 +132,24 @@ func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) 
 		ctx:          ctx,
 		RollupConfig: conf,
 
-		anytrustDA: anytrustDA,
-		celestiaDA: celestiaDA,
-		eigenDA:    eigenDA,
-		eip4844:    eip4844,
-		nearDA:     nearDA,
+		anytrustDA:        anytrustDA,
+		anytrustCommittee: anytrustDACommittee,
+		celestiaDA:        celestiaDA,
+		eigenDA:           eigenDA,
+		eip4844:           eip4844,
+		nearDA:            nearDA,
 	}, nil
 }
 
 // for cli
-func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, error) {
+func NewRollupModuleForCLI(cliCtx *cli.Context, logger log.Logger) (*RollupModule, error) {
+	if cliCtx == nil {
+		return nil, _errors.NilPointerErr
+	}
+
 	celestiaDA, err := celestia.NewCelestiaRollup(cliCtx, logger)
 	if err != nil {
 		log.Error("NewCelestiaRollup failed", "err", err)
-		return nil, err
 	} else {
 		log.Debug("finish new celestiaDA")
 	}
@@ -143,24 +157,28 @@ func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, e
 	eip4844, err := eip4844.NewEip4844Rollup(cliCtx, logger)
 	if err != nil {
 		log.Error("NewEip4844Rollup failed", "err", err)
-		return nil, err
 	} else {
 		log.Debug("finish new eip4844 rollup")
 	}
 
-	conf := _config.NewRollupConfig() // config for anytrust & eigenda & nearda
+	conf := _config.NewRollupConfig() // config for anytrust & anytrust-das-committee & eigenda & nearda
 	anytrustDA, err := anytrust.NewAnytrustDA(conf.AnytrustDAConfig)
 	if err != nil {
 		log.Error("NewAnytrustRollup failed", "err", err)
-		return nil, err
 	} else {
 		log.Debug("finish new anytrustDA")
+	}
+
+	anytrustDACommittee, err := anytrust.NewAnytrustDAWithCommittee(cliCtx.Context, conf.AnytrustCommitteeConfig, nil)
+	if err != nil {
+		log.Error("NewAnytrustDAWithCommittee failed", "err", err)
+	} else {
+		log.Debug("finish new anytrustDA committee")
 	}
 
 	eigenDA, err := eigenda.NewEigenDAClient(conf.EigenDAConfig)
 	if err != nil {
 		log.Error("NewEigenRollup failed", "err", err)
-		return nil, err
 	} else {
 		log.Debug("finish new eigenDA")
 	}
@@ -168,19 +186,21 @@ func NewRollupModule_2(cliCtx *cli.Context, logger log.Logger) (*RollupModule, e
 	nearDA, err := nearda.NewNearDAClient(conf.NearDAConfig)
 	if err != nil {
 		log.Error("NewNearRollup failed", "err", err)
-		return nil, err
 	} else {
 		log.Debug("finish new nearDA")
 	}
 
 	return &RollupModule{
-		ctx:        cliCtx.Context,
-		anytrustDA: anytrustDA,
-		celestiaDA: celestiaDA,
-		eigenDA:    eigenDA,
-		eip4844:    eip4844,
-		nearDA:     nearDA,
-		Log:        logger,
+		ctx:          cliCtx.Context,
+		RollupConfig: conf,
+
+		anytrustDA:        anytrustDA,
+		anytrustCommittee: anytrustDACommittee,
+		celestiaDA:        celestiaDA,
+		eigenDA:           eigenDA,
+		eip4844:           eip4844,
+		nearDA:            nearDA,
+		Log:               logger,
 	}, nil
 
 }
@@ -271,8 +291,26 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 
 		res = append(res, base64.StdEncoding.EncodeToString(frameRefBytes))
 		return res, nil
+	case _common.AnytrustCommitteeType:
+		if r.anytrustCommittee == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrust-das-committee")
+			return nil, _errors.DANotPreparedErr
+		}
+		daCert, err := r.anytrustCommittee.WriteDA(r.ctx, data, 9223372036854775807)
+		if err != nil {
+			log.Error(_errors.RollupFailedMsg, "da-type", "anytrust-das-committee", "err", err)
+			return nil, err
+		}
+
+		dataHashHex := hex.EncodeToString(daCert.DataHash[:])
+		log.Debug("anytrust-das-committee stored data", "daCert.DataHashHex", dataHashHex)
+
+		res = append(res, dataHashHex)
+		res = append(res, base64.StdEncoding.EncodeToString(das.Serialize(daCert)))
+		return res, nil
+
 	default:
-		log.Error("rollup with unknown da type", "daType", daType, "expected", "[0,4]")
+		log.Error("rollup with unknown da type", "daType", daType, "expected", "[0,5]")
 	}
 	return nil, _errors.UnknownDATypeErr
 }
@@ -310,8 +348,7 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			return nil, _errors.WrongArgTypeErr
 		}
 		log.Debug("request get from celestiaDA", "reqTxHashStr", reqTxHashStr)
-
-		res, err := r.celestiaDA.DataFromEVMTransactions(context.Background(), reqTxHashStr)
+		res, err := r.celestiaDA.DataFromEVMTransactions(r.ctx, reqTxHashStr)
 		if err != nil {
 			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqTxHashStr", reqTxHashStr, "da-type", "celestiaDA")
 			return nil, err
@@ -412,8 +449,28 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 
 		log.Debug("get from nearDA successfully")
 		return result, nil
+	case _common.AnytrustCommitteeType:
+		if r.anytrustCommittee == nil {
+			log.Error(_errors.DANotPreparedErrMsg, "da-type", "anytrust-das-committee")
+			return nil, _errors.DANotPreparedErr
+		}
+		hashHex, ok := args.(string)
+		if !ok {
+			log.Error("args is not string type")
+			return nil, _errors.WrongArgTypeErr
+		}
+		log.Debug("receive rollup request with anytrust das committee", "hashHex", hashHex)
+
+		res, err := r.anytrustCommittee.ReadDA(r.ctx, hashHex)
+		if err != nil {
+			log.Error(_errors.GetFromDAErrMsg, "err", err, "hashHex", hashHex, "da-type", "anytrust-das-committee")
+			return nil, err
+		}
+
+		log.Debug("get from anytrust das committee successfully", "hashHex", hashHex)
+		return res, nil
 	default:
-		log.Error("RetrieveFromDAWithType got unknown da type", "daType", daType, "expected", "[0,4]")
+		log.Error("RetrieveFromDAWithType got unknown da type", "daType", daType, "expected", "[0,5]")
 	}
 	return nil, _errors.UnknownDATypeErr
 }
