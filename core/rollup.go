@@ -108,7 +108,7 @@ func NewRollupModuleWithConfig(ctx context.Context, conf *_config.RollupConfig) 
 		log.Error("NewAnytrustDACommittee failed", "err", err)
 	}
 
-	celestiaDA, err := celestia.NewCelestiaRollupWithConfig(ctx, conf.CelestiaCLICfg, conf.CelestiaDAConfig)
+	celestiaDA, err := celestia.NewCelestiaRollupWithConfig(ctx, conf.CelestiaDAConfig)
 	if err != nil {
 		log.Error("NewCelestiaRollupWithConfig failed", "err", err)
 	}
@@ -235,15 +235,14 @@ func (r *RollupModule) RollupWithType(data []byte, daType int) ([]interface{}, e
 			return nil, _errors.DANotPreparedErr
 		}
 
-		txHash, err := r.celestiaDA.SendTransaction(r.ctx, data)
+		height, err := r.celestiaDA.SubmitBlob(r.ctx, data)
 		if err != nil {
 			log.Error(_errors.RollupFailedMsg, "da-type", "celestiaDA", "err", err)
 			return nil, err
 		}
-		txHashStr := fmt.Sprintf("0x%s", hex.EncodeToString(txHash))
-		log.Debug("celestiaDA stored data", "txHash", txHashStr)
+		log.Debug("celestiaDA stored data", "height", height)
 
-		res = append(res, txHashStr)
+		res = append(res, height)
 		return res, nil
 	case _common.EigenDAType:
 		if r.eigenDA == nil {
@@ -342,19 +341,19 @@ func (r *RollupModule) RetrieveFromDAWithType(daType int, args interface{}) ([]b
 			log.Error(_errors.DANotPreparedErrMsg, "da-type", "celestiaDA")
 			return nil, _errors.DANotPreparedErr
 		}
-		reqTxHashStr, ok := args.(string)
+		reqHeight, ok := args.(uint64)
 		if !ok {
 			log.Error("args is not string type")
 			return nil, _errors.WrongArgTypeErr
 		}
-		log.Debug("request get from celestiaDA", "reqTxHashStr", reqTxHashStr)
-		res, err := r.celestiaDA.DataFromEVMTransactions(r.ctx, reqTxHashStr)
+		log.Debug("request get from celestiaDA", "height", reqHeight)
+		res, err := r.celestiaDA.RetrievedBlobs(r.ctx, reqHeight)
 		if err != nil {
-			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqTxHashStr", reqTxHashStr, "da-type", "celestiaDA")
+			log.Error(_errors.GetFromDAErrMsg, "err", err, "reqHeight", reqHeight, "da-type", "celestiaDA")
 			return nil, err
 		}
 
-		log.Debug("get from celestiaDA successfully", "reqTxHashStr", reqTxHashStr)
+		log.Debug("get from celestiaDA successfully", "reqHeight", reqHeight)
 		return res, nil
 
 	case _common.EigenDAType:
