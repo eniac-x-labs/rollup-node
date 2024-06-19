@@ -22,7 +22,7 @@ func TestSubmitBlob(t *testing.T) {
 	celestiaCfg := &CelestiaConfig{
 		celestiaConfig: CLIConfig{
 			DaRpc:     "http://localhost:26658",
-			AuthToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.hvozH2QysWw0yOBOABZpTdM7VWq0DkqKamqh70mQ75M",
+			AuthToken: "",
 			Namespace: namespace.String(),
 		},
 		logger: logger,
@@ -46,7 +46,7 @@ func TestRetrievedBlobs(t *testing.T) {
 	celestiaCfg := &CelestiaConfig{
 		celestiaConfig: CLIConfig{
 			DaRpc:     "http://localhost:26658",
-			AuthToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.hvozH2QysWw0yOBOABZpTdM7VWq0DkqKamqh70mQ75M",
+			AuthToken: "",
 			Namespace: namespace.String(),
 		},
 		logger: logger,
@@ -58,11 +58,4 @@ func TestRetrievedBlobs(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Retrieve celestia transaction success! ", fmt.Sprintf("data: %s", string(data)))
-}
-
-func Test2(t *testing.T) {
-	namespace, _ := share.NewBlobNamespaceV0([]byte("DappLink"))
-
-	fmt.Println(namespace.ID())
-
 }
