@@ -1,0 +1,3 @@
+rpc = "disperser-holesky.eigenda.xyz:443"
+status_query_timeout = "60s"
+status_query_retry_interval = "5s"

@@ -1,0 +1,60 @@
+enable = true
+requestTimeout = "5s"
+parentChainNodeURL = "none"
+parentChainConnectionAttempts = 0
+sequencerInboxAddress = "none"
+extraSignatureCheckingPublicKey = ""
+panicOnError = false
+disableSignatureChecking = true
+
+[key]
+keyDir = ""
+privKey = ""
+
+[rpcAggregator]
+enable = true
+assumedHonest = 2
+#backends = '''[
+#        {
+#        "url":"http://localhost:9876",
+#        "pubkey":"YANNHJokFPJxxsDhJ8u9p9uPN5UDupSM+2I7/GjYfPHQ5X0tPdRnyRosFcXdNPJIhQFdWVWaq3CB4B/FZmoKrwQuzjLzDyNcrnhVMqlfd9PL7iQ0vFI14F7XGyxm64nEIRmaHWxz12lnYiEAt75gBnnMlqN0nrTCQ87OoPaixyKhV7b6OqweMTPiUa+/aFCdhhh0G9f+7O98lxfpQyHek37Wq9zHBfHxvcPlHbNZ6wz9G3phrlLmvqtxhAYlqEVRFxdAzB37sOczDDpeKHgz8AUcSzy/c4DXzQ+guTsajLis0yWrej1tBDky8fD8fHhxzQ6M0TbniTvhHXWLC/eHg5DdHPUvt1v0aC5kjAg1swl3E26z/wo75JcfyBtILiDqhg==",
+#        "signermask":1
+#        }
+#        ]'''
+backends = '''[
+        {
+            "url":"http://localhost:9876",
+            "pubkey":"YANNHJokFPJxxsDhJ8u9p9uPN5UDupSM+2I7/GjYfPHQ5X0tPdRnyRosFcXdNPJIhQFdWVWaq3CB4B/FZmoKrwQuzjLzDyNcrnhVMqlfd9PL7iQ0vFI14F7XGyxm64nEIRmaHWxz12lnYiEAt75gBnnMlqN0nrTCQ87OoPaixyKhV7b6OqweMTPiUa+/aFCdhhh0G9f+7O98lxfpQyHek37Wq9zHBfHxvcPlHbNZ6wz9G3phrlLmvqtxhAYlqEVRFxdAzB37sOczDDpeKHgz8AUcSzy/c4DXzQ+guTsajLis0yWrej1tBDky8fD8fHhxzQ6M0TbniTvhHXWLC/eHg5DdHPUvt1v0aC5kjAg1swl3E26z/wo75JcfyBtILiDqhg==",
+            "signermask":1
+        },
+        {
+            "url":"http://localhost:9878",
+            "pubkey":"YAQY9WEbCf1pgzk6ddbYBzk2qgK/BcbKyfUlDzrwa48Yy1MnUDeFu2FuQEC5EmxaTwYHBaVQYPTTVqqsxXqhml2DmEHO4D+gAe0/TxOHYBLIjy/nglNg+K9LAMgb4V02XQDE0QQ42Cv94IUJh4vITFXSGloR6bv5aaubSO4Z/0Xboc4i4u6QDqTjaiAfscqv7hRliPQGr9oJKULZMLkVuUSiO60qqvEzNdI0+McsNZSBplVO5MTsGaEXvu4hpitOZBZOM4+efFHZ8sh2xEDmfX0iIbkUL9I6Pj24o1v5xx+jP2I7EZKK5z5iFwqy+5ZcnAWnezIK8cZb0abfMmzN1h+cQDO7wpKMYBgv8k4xSXCJBNiKJ/4C8Aon5AOxJkLQMQ==",
+            "signermask":2
+        }
+        ]'''
+
+[restAggregator]
+enable = true
+#urls = ["http://127.0.0.1:9877"]
+urls = ["http://127.0.0.1:9877", "http://127.0.0.1:9879"]
+onlineUrlList = "" # keep empty
+onlineUrlListFetchInterval = "1h"
+strategy = "simple-explore-exploit"
+strategyUpdateInterval = "10s"
+waitBeforeTryNext = "2s"
+maxPerEndpointStats = 20
+
+[restAggregator.simpleExploreExploitStrategy]
+exploreIterations = 20
+exploitIterations = 1000
+
+[restAggregator.syncToStorage]
+checkAlreadyExists = true
+eager = false
+eagerLowerBoundBlock = 0
+retentionPeriod = 9223372036854775807
+delayOnError = "1s"
+ignoreWriteErrors = true
+parentChainBlocksPerRead = 100
+stateDir = ""

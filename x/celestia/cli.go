@@ -8,21 +8,15 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
 )
 
 const (
-	L1ChainIdFlagName = "l1.chain-id"
-	DaRpcFlagName     = "celestia.da.rpc"
+	DaRpcFlagName = "celestia.da.rpc"
 	// AuthTokenFlagName defines the flag for the auth token
 	AuthTokenFlagName = "celestia.da.auth_token"
 	// NamespaceFlagName defines the flag for the namespace
-	NamespaceFlagName         = "celestia.da.namespace"
-	BatcherAddressFlagName    = "celestia..batcher-address"
-	BatchInboxAddressFlagName = "celestia..batch-inbox-address"
+	NamespaceFlagName = "celestia.da.namespace"
 )
 
 var (
@@ -51,12 +45,6 @@ func Check(address string) error {
 
 func CLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
-		&cli.Uint64Flag{
-			Name:     L1ChainIdFlagName,
-			Usage:    "The chain id of l1.",
-			Required: false,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "L1_CHAIN_ID"),
-		},
 		&cli.StringFlag{
 			Name:    DaRpcFlagName,
 			Usage:   "dial address of data availability grpc client",
@@ -72,18 +60,6 @@ func CLIFlags(envPrefix string) []cli.Flag {
 			Name:    NamespaceFlagName,
 			Usage:   "namespace of the data availability client",
 			EnvVars: eth.PrefixEnvVar(envPrefix, "CELESTIA_DA_NAMESPACE"),
-		},
-		&cli.StringFlag{
-			Name:     BatcherAddressFlagName,
-			Usage:    "Address of celestia Batcher.",
-			Required: false,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "CELESTIA_BATCHER_ADDRESS"),
-		},
-		&cli.StringFlag{
-			Name:     BatchInboxAddressFlagName,
-			Usage:    "Address of celestia Batch inbox.",
-			Required: false,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "CELESTIA_BATCH_INBOX_ADDRESS"),
 		},
 	}
 }
@@ -108,7 +84,6 @@ type CLIConfig struct {
 	DaRpc     string
 	AuthToken string
 	Namespace string
-	DSConfig  *DataSourceConfig
 }
 
 func (c CLIConfig) Check() error {
@@ -129,19 +104,11 @@ func NewCLIConfig() CLIConfig {
 	}
 }
 
-func ReadCLIConfig(ctx *cli.Context) CLIConfig {
+func ReadCLIConfig(ctx *cli.Context, l1ChainId *big.Int) CLIConfig {
 
-	signer := types.NewCancunSigner(new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)))
-
-	dsConfig := DataSourceConfig{
-		l1Signer:          signer,
-		batchInboxAddress: common.HexToAddress(ctx.String(BatchInboxAddressFlagName)),
-		batcherAddr:       common.HexToAddress(ctx.String(BatcherAddressFlagName)),
-	}
 	return CLIConfig{
 		DaRpc:     ctx.String(DaRpcFlagName),
 		AuthToken: ctx.String(AuthTokenFlagName),
 		Namespace: ctx.String(NamespaceFlagName),
-		DSConfig:  &dsConfig,
 	}
 }

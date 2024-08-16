@@ -50,9 +50,9 @@ func CLIFlags(envPrefix string) []cli.Flag {
 }
 
 type CLIConfig struct {
-	Enabled    bool
-	ListenAddr string
-	ListenPort int
+	Enabled    bool   `toml:"enable"`
+	ListenAddr string `toml:"listenAddr"`
+	ListenPort int    `toml:"listenPort"`
 }
 
 func (m CLIConfig) Check() error {

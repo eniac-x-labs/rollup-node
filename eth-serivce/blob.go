@@ -13,7 +13,7 @@ import (
 
 const (
 	BlobSize          = 4096 * 32
-	MaxBlobDataSize   = (4*31+3)*1024 - 4
+	MaxBlobDataSize   = (48*31+3)*1024 - 4
 	EncodingVersion   = 0
 	VersionOffset     = 1    // offset of the version byte in the blob encoding
 	Rounds            = 1024 // number of encode/decode rounds
@@ -67,11 +67,8 @@ func KZGToVersionedHash(commitment kzg4844.Commitment) (out common.Hash) {
 	// EIP-4844 spec:
 	//	def kzg_to_versioned_hash(commitment: KZGCommitment) -> VersionedHash:
 	//		return VERSIONED_HASH_VERSION_KZG + sha256(commitment)[1:]
-	h := sha256.New()
-	h.Write(commitment[:])
-	_ = h.Sum(out[:0])
-	out[0] = BlobTxHashVersion
-	return out
+	hasher := sha256.New()
+	return kzg4844.CalcBlobHashV1(hasher, &commitment)
 }
 
 // VerifyBlobProof verifies that the given blob and proof corresponds to the given commitment,

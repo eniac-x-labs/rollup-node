@@ -1,0 +1,6 @@
+rpc_url = "http://localhost:9876"
+restful_url = "http://127.0.0.1:9877"
+data_retention_time = 9223372036854775807
+
+random_message_size = 0
+signing_key = ""

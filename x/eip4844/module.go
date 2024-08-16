@@ -4,52 +4,38 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
 	"math/big"
 	"sync/atomic"
 
+	cli_config "github.com/eniac-x-labs/rollup-node/config/cli-config"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 
 	"github.com/eniac-x-labs/rollup-node/client"
-	"github.com/eniac-x-labs/rollup-node/common/cliapp"
-	"github.com/eniac-x-labs/rollup-node/config"
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
-	"github.com/eniac-x-labs/rollup-node/log"
-	metrics2 "github.com/eniac-x-labs/rollup-node/metrics"
-	"github.com/eniac-x-labs/rollup-node/txmgr"
-	"github.com/eniac-x-labs/rollup-node/txmgr/metrics"
+	"github.com/eniac-x-labs/rollup-node/signer"
 )
 
 var ErrAlreadyStopped = errors.New("already stopped")
 
 type Eip4844Rollup struct {
 	Eip4844Config  CLIConfig
-	Txmgr          txmgr.TxManager
-	Config         *config.CLIConfig
-	Metrics        metrics.Metricer
+	Config         *cli_config.CLIConfig
 	l1BeaconClient *eth.L1BeaconClient
 	Log            log.Logger
+	ethClients     client.EthClient
+	Signer         signer.SignerFn
+	From           common.Address
 	stopped        atomic.Bool
 	driverCtx      context.Context
-}
-
-func (e *Eip4844Rollup) Start(ctx context.Context) error {
-	client, _ := ethclient.DialContext(context.Background(), "https://eth-mainnet.g.alchemy.com/v2/-EK96JwUb8C_l_EfZqaLumlZG6PV8SDq")
-
-	block, _ := client.BlockByNumber(context.Background(), new(big.Int).SetUint64(19560971))
-
-	data, err := e.DataFromEVMTransactions(block)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println(len(data))
-
-	return nil
 }
 
 func (e *Eip4844Rollup) Stop(ctx context.Context) error {
@@ -58,10 +44,6 @@ func (e *Eip4844Rollup) Stop(ctx context.Context) error {
 	}
 
 	e.Log.Info("Stopping eip4844 rollup service")
-
-	if e.Txmgr != nil {
-		e.Txmgr.Close()
-	}
 
 	e.stopped.Store(true)
 	e.Log.Info("eip4844 rollup service stopped")
@@ -73,21 +55,18 @@ func (e *Eip4844Rollup) Stopped() bool {
 	return e.stopped.Load()
 }
 
-func NewEip4844Rollup(cliCtx *cli.Context, shutdown context.CancelCauseFunc) (cliapp.Lifecycle, error) {
+func NewEip4844Rollup(cliCtx *cli.Context, logger log.Logger) (*Eip4844Rollup, error) {
 
-	cfg, err := config.NewConfig(cliCtx)
+	cfg, err := cli_config.NewConfig(cliCtx)
 	if err != nil {
 		return nil, err
 	}
-	eip4844Config := ReadCLIConfig(cliCtx)
-
-	logger := log.NewLogger(log.AppOut(cliCtx), cfg.LogConfig).New("eip-4844")
-	log.SetGlobalLogHandler(logger.GetHandler())
+	eip4844Config := ReadCLIConfig(cliCtx, cfg.L1ChainID)
 
 	return Eip4844ServiceFromCLIConfig(cliCtx.Context, cfg, eip4844Config, logger)
 }
 
-func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) (*Eip4844Rollup, error) {
+func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) (*Eip4844Rollup, error) {
 	var e Eip4844Rollup
 	if err := e.initFromCLIConfig(ctx, cfg, eip4844Config, logger); err != nil {
 		return nil, errors.Join(err, e.Stop(ctx)) // try to clean up our failed initialization attempt
@@ -95,74 +74,60 @@ func Eip4844ServiceFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip
 	return &e, nil
 }
 
-func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) error {
+func NewEip4844WithConfig(ctx context.Context, cfg *cli_config.CLIConfig, config *Eip4844Config) (*Eip4844Rollup, error) {
+	if cfg == nil || config == nil {
+		log.Error("celestia config is nil pointer")
+		return nil, nil
+	}
+
+	var e Eip4844Rollup
+	if err := e.initFromCLIConfig(ctx, cfg, config.eip4844Config, config.logger); err != nil {
+		return nil, errors.Join(err, e.Stop(ctx)) // try to clean up our failed initialization attempt
+	}
+	return &e, nil
+}
+
+func (e *Eip4844Rollup) initFromCLIConfig(ctx context.Context, cfg *cli_config.CLIConfig, eip4844Config CLIConfig, logger log.Logger) error {
 
 	e.Config = cfg
 	e.Eip4844Config = eip4844Config
 	e.Log = logger
 
+	l1Client, err := client.DialEthClient(ctx, cfg.L1Rpc)
+	if err != nil {
+		log.Error("failed to dial eth client", "err", err)
+		return err
+	}
+	e.ethClients = l1Client
+
+	signerFactory, from, err := signer.SignerFactoryFromPrivateKey(cfg.PrivateKey)
+	if err != nil {
+		log.Error(fmt.Errorf("could not init signer: %w", err).Error())
+		return err
+	}
+	e.Signer = signerFactory(cfg.L1ChainID)
+	e.From = from
+
+	var fb []eth.BlobSideCarsFetcher
 	bCl := client.NewBasicHTTPClient(eip4844Config.L1BeaconAddr)
+	fb = append(fb, eth.NewBeaconHTTPClient(bCl))
 	beaconCfg := eth.L1BeaconClientConfig{
 		FetchAllSidecars: eip4844Config.ShouldFetchAllSidecars,
 	}
-	e.l1BeaconClient = eth.NewL1BeaconClient(bCl, beaconCfg)
-
-	e.initMetrics(cfg)
-
-	if err := e.initTxManager(cfg, e.Log); err != nil {
-		return err
-	}
-	if err := e.initMetricsServer(cfg); err != nil {
-		return err
-	}
+	e.l1BeaconClient = eth.NewL1BeaconClient(eth.NewBeaconHTTPClient(bCl), beaconCfg, fb...)
 
 	e.driverCtx = ctx
 
 	return nil
 }
 
-func (e *Eip4844Rollup) initTxManager(cfg *config.CLIConfig, logger log.Logger) error {
-	txManager, err := txmgr.NewSimpleTxManager("eip-4844-rollup", logger, e.Metrics, cfg.TxMgrConfig)
-	if err != nil {
-		return err
-	}
-	e.Txmgr = txManager
-	return nil
-}
-
-func (e *Eip4844Rollup) initMetrics(cfg *config.CLIConfig) {
-	if cfg.MetricsConfig.Enabled {
-		procName := "default"
-		e.Metrics = metrics.NewMetrics(procName)
-	}
-}
-
-func (e *Eip4844Rollup) initMetricsServer(cfg *config.CLIConfig) error {
-	if !cfg.MetricsConfig.Enabled {
-		e.Log.Info("metrics disabled")
-		return nil
-	}
-	m, ok := e.Metrics.(metrics.RegistryMetricer)
-	if !ok {
-		return fmt.Errorf("metrics were enabled, but metricer %T does not expose registry for metrics-server", e.Metrics)
-	}
-	e.Log.Debug("starting metrics server", "addr", cfg.MetricsConfig.ListenAddr, "port", cfg.MetricsConfig.ListenPort)
-	addr, err := metrics2.StartServer(m.Registry(), cfg.MetricsConfig.ListenAddr, cfg.MetricsConfig.ListenPort)
-	if err != nil {
-		return fmt.Errorf("failed to start metrics server: %w", err)
-	}
-	e.Log.Info("started metrics server", "addr", addr)
-	return nil
-}
-
-// sendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
+// SendTransaction creates & submits a transaction to the batch inbox address with the given `txData`.
 // It currently uses the underlying `txmgr` to handle transaction sending & price management.
 // This is a blocking method. It should not be called concurrently.
-func (e *Eip4844Rollup) sendTransaction(tx types.Transaction, queue *txmgr.Queue[types.Transaction], receiptsCh chan txmgr.TxReceipt[types.Transaction]) error {
+func (e *Eip4844Rollup) SendTransaction(ctx context.Context, data []byte) ([]byte, error) {
 	// Do the gas estimation offline. A value of 0 will cause the [txmgr] to estimate the gas limit.
-	data := tx.Data()
 
-	var candidate *txmgr.TxCandidate
+	var candidate *eth.TxCandidate
 	if e.Eip4844Config.UseBlobs {
 		var err error
 		if candidate, err = e.blobTxCandidate(data); err != nil {
@@ -170,56 +135,83 @@ func (e *Eip4844Rollup) sendTransaction(tx types.Transaction, queue *txmgr.Queue
 			// likely result in the chain spending more in gas fees than it is tuned for, so best
 			// to just fail. We do not expect this error to trigger unless there is a serious bug
 			// or configuration issue.
-			return fmt.Errorf("could not create blob tx candidate: %w", err)
+			return nil, fmt.Errorf("could not create blob tx candidate: %w", err)
 		}
 	} else {
 		candidate = e.calldataTxCandidate(data)
 	}
 
-	intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
+	intrinsicGas, err := core.IntrinsicGas(data, nil, false, true, true, false)
 	if err != nil {
-		// we log instead of return an error here because txmgr can do its own gas estimation
 		e.Log.Error("Failed to calculate intrinsic gas", "err", err)
 	} else {
 		candidate.GasLimit = intrinsicGas
 	}
 
-	queue.Send(tx, *candidate, receiptsCh)
-	return nil
+	tx, err := e.craftTx(ctx, *candidate)
+	if err != nil {
+		e.Log.Error("Failed to create a transaction", "err", err)
+		return nil, err
+	}
+
+	signTx, err := e.Signer(e.driverCtx, e.From, tx)
+	if err != nil {
+		e.Log.Error("Failed to sign a transaction", "err", err)
+		return nil, err
+	}
+
+	err = e.ethClients.SendTransaction(e.driverCtx, signTx)
+	if err != nil {
+		e.Log.Error("Failed to send transaction", "err", err)
+		return nil, err
+	}
+
+	return signTx.Hash().Bytes(), nil
 }
 
-func (e *Eip4844Rollup) blobTxCandidate(data []byte) (*txmgr.TxCandidate, error) {
+func (e *Eip4844Rollup) blobTxCandidate(data []byte) (*eth.TxCandidate, error) {
 	var b eth.Blob
 	if err := b.FromData(data); err != nil {
 		return nil, fmt.Errorf("data could not be converted to blob: %w", err)
 	}
-	return &txmgr.TxCandidate{
+	return &eth.TxCandidate{
 		To:    &e.Eip4844Config.DSConfig.batchInboxAddress,
 		Blobs: []*eth.Blob{&b},
 	}, nil
 }
 
-func (e *Eip4844Rollup) calldataTxCandidate(data []byte) *txmgr.TxCandidate {
-	return &txmgr.TxCandidate{
+func (e *Eip4844Rollup) calldataTxCandidate(data []byte) *eth.TxCandidate {
+	e.Log.Info("building Calldata transaction candidate", "size", len(data))
+	return &eth.TxCandidate{
 		To:     &e.Eip4844Config.DSConfig.batchInboxAddress,
 		TxData: data,
 	}
 }
 
-func (e *Eip4844Rollup) DataFromEVMTransactions(block *types.Block) (datas []eth.Data, err error) {
+func (e *Eip4844Rollup) DataFromEVMTransactions(ctx context.Context, txHashStr string) (data eth.Data, err error) {
+	var datas []eth.Data
+	var txs types.Transactions
 
-	_, hashes := dataAndHashesFromTxs(block.Transactions(), e.Eip4844Config.DSConfig, e.Log)
+	tx, header, err := e.getTransactionAndBlockByTxHash(ctx, txHashStr)
+	if err != nil {
+		log.Error("failed to get transaction and block by tx hash", "tx_hash", txHashStr, "err", err)
+		return nil, err
+	}
+	txs = append(txs, tx)
+
+	_, hashes := dataAndHashesFromTxs(txs, e.Eip4844Config.DSConfig, e.Log)
 	if len(hashes) == 0 {
 		// there are no blobs to fetch so we can return immediately
-		return nil, nil
+		return nil, fmt.Errorf("this transaction has no blob data, tx_hash=%s", txHashStr)
 	}
 
 	ref := eth.L1BlockRef{
-		Hash:       block.Hash(),
-		Number:     block.NumberU64(),
-		ParentHash: block.ParentHash(),
-		Time:       block.Time(),
+		Hash:       header.Hash(),
+		Number:     header.Number.Uint64(),
+		ParentHash: header.ParentHash,
+		Time:       header.Time,
 	}
+
 	blobs, err := e.l1BeaconClient.GetBlobs(e.driverCtx, ref, hashes)
 	if errors.Is(err, ethereum.NotFound) {
 		// If the L1 block was available, then the blobs should be available too. The only
@@ -239,10 +231,117 @@ func (e *Eip4844Rollup) DataFromEVMTransactions(block *types.Block) (datas []eth
 		datas = append(datas, data)
 	}
 
+	return datas[0], nil
+}
+
+func (e *Eip4844Rollup) craftTx(ctx context.Context, candidate eth.TxCandidate) (*types.Transaction, error) {
+	e.Log.Debug("crafting Transaction", "blobs", len(candidate.Blobs), "calldata_size", len(candidate.TxData))
+
+	gasLimit := candidate.GasLimit
+
+	var sidecar *types.BlobTxSidecar
+	var blobHashes []common.Hash
+	var err error
+	if len(candidate.Blobs) > 0 {
+		if candidate.To == nil {
+			return nil, errors.New("blob txs cannot deploy contracts")
+		}
+		if sidecar, blobHashes, err = MakeSidecar(candidate.Blobs); err != nil {
+			return nil, fmt.Errorf("failed to make sidecar: %w", err)
+		}
+	}
+
+	nonce, err := e.ethClients.NonceAt(ctx, e.From, nil)
 	if err != nil {
-		e.Log.Error("ignoring blob due to parse failure", "err", err)
+		e.Log.Error("failed to get account nonce", "err", err)
 		return nil, err
 	}
 
-	return datas, nil
+	tip, err := e.ethClients.SuggestGasTipCap(ctx)
+	if err != nil {
+		e.Log.Error(fmt.Errorf("failed to fetch the suggested gas tip cap: %w", err).Error())
+		return nil, err
+	}
+
+	header, err := e.ethClients.HeaderByNumber(ctx, nil)
+	if err != nil {
+		e.Log.Error(fmt.Errorf("failed to fetch the suggested base fee: %w", err).Error())
+		return nil, err
+	}
+	baseFee := header.BaseFee
+	gasFeeCap := calcGasFeeCap(baseFee, tip)
+
+	var blobFee *big.Int
+	if header.ExcessBlobGas != nil {
+		blobFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
+	}
+
+	var txMessage types.TxData
+	if sidecar != nil {
+		message := &types.BlobTx{
+			To:         *candidate.To,
+			Data:       candidate.TxData,
+			Gas:        gasLimit,
+			BlobHashes: blobHashes,
+			Sidecar:    sidecar,
+			Nonce:      nonce,
+			GasTipCap:  new(uint256.Int).SetUint64(tip.Uint64()),
+			GasFeeCap:  new(uint256.Int).SetUint64(gasFeeCap.Uint64()),
+			BlobFeeCap: new(uint256.Int).SetUint64(blobFee.Uint64()),
+		}
+		txMessage = message
+	}
+	return types.NewTx(txMessage), err
+}
+
+// MakeSidecar builds & returns the BlobTxSidecar and corresponding blob hashes from the raw blob
+// data.
+func MakeSidecar(blobs []*eth.Blob) (*types.BlobTxSidecar, []common.Hash, error) {
+	sidecar := &types.BlobTxSidecar{}
+	blobHashes := []common.Hash{}
+	for i, blob := range blobs {
+		rawBlob := *blob.KZGBlob()
+		sidecar.Blobs = append(sidecar.Blobs, rawBlob)
+		commitment, err := kzg4844.BlobToCommitment(rawBlob)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot compute KZG commitment of blob %d in tx candidate: %w", i, err)
+		}
+		sidecar.Commitments = append(sidecar.Commitments, commitment)
+		proof, err := kzg4844.ComputeBlobProof(rawBlob, commitment)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot compute KZG proof for fast commitment verification of blob %d in tx candidate: %w", i, err)
+		}
+		sidecar.Proofs = append(sidecar.Proofs, proof)
+		blobHashes = append(blobHashes, eth.KZGToVersionedHash(commitment))
+	}
+	return sidecar, blobHashes, nil
+}
+
+func (e *Eip4844Rollup) getTransactionAndBlockByTxHash(ctx context.Context, txHashStr string) (*types.Transaction, *types.Header, error) {
+	tx, err := e.ethClients.TxByHash(common.HexToHash(txHashStr))
+	if err != nil {
+		e.Log.Error("failed to get transaction", "tx_hash", txHashStr)
+		return nil, nil, err
+	}
+
+	receipt, err := e.ethClients.TxReceiptDetailByHash(tx.Hash())
+	if err != nil {
+		e.Log.Error("failed to get transaction receipt", "tx_hash", txHashStr)
+		return nil, nil, err
+	}
+
+	header, err := e.ethClients.HeaderByNumber(ctx, receipt.BlockNumber)
+	if err != nil {
+		e.Log.Error("failed to get block header by number", "number", receipt.BlockNumber)
+		return nil, nil, err
+	}
+
+	return tx, header, nil
+}
+
+func calcGasFeeCap(baseFee, gasTipCap *big.Int) *big.Int {
+	return new(big.Int).Add(
+		gasTipCap,
+		new(big.Int).Mul(baseFee, big.NewInt(2)),
+	)
 }

@@ -1,9 +1,9 @@
 package eip4844
 
 import (
-	"github.com/eniac-x-labs/rollup-node/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 
 	eth "github.com/eniac-x-labs/rollup-node/eth-serivce"
 )
@@ -61,14 +61,14 @@ func isValidBatchTx(tx *types.Transaction, l1Signer types.Signer, batchInboxAddr
 	if to == nil || *to != batchInboxAddr {
 		return false
 	}
-	seqDataSubmitter, err := l1Signer.Sender(tx) // optimization: only derive sender if To is correct
+	DataSubmitter, err := l1Signer.Sender(tx) // optimization: only derive sender if To is correct
 	if err != nil {
 		log.Warn("tx in inbox with invalid signature", "hash", tx.Hash(), "err", err)
 		return false
 	}
 	// some random L1 user might have sent a transaction to our batch inbox, ignore them
-	if seqDataSubmitter != batcherAddr {
-		log.Warn("tx in inbox with unauthorized submitter", "addr", seqDataSubmitter, "hash", tx.Hash(), "err", err)
+	if DataSubmitter != batcherAddr {
+		log.Warn("tx in inbox with unauthorized submitter", "addr", DataSubmitter, "tx", "hash", tx.Hash(), "err", err)
 		return false
 	}
 	return true

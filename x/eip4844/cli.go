@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	L1ChainIdFlagName                = "l1.chain-id"
 	DataAvailabilityTypeFlagName     = "data-availability-type"
 	L1BeaconFlagName                 = "l1.beacon"
 	L1BeaconFetchAllSidecarsFlagName = "l1.beacon.fetch-all-sidecars"
@@ -22,12 +21,6 @@ const (
 
 func CLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
-		&cli.Uint64Flag{
-			Name:     L1ChainIdFlagName,
-			Usage:    "The chain id of l1.",
-			Required: false,
-			EnvVars:  eth.PrefixEnvVar(envPrefix, "L1_CHAIN_ID"),
-		},
 		&cli.StringFlag{
 			Name:    DataAvailabilityTypeFlagName,
 			Usage:   "The data availability type to use for submitting batches to the L1.",
@@ -63,7 +56,6 @@ func CLIFlags(envPrefix string) []cli.Flag {
 }
 
 type CLIConfig struct {
-	L1ChainID              *big.Int
 	DSConfig               *DataSourceConfig
 	UseBlobs               bool
 	L1BeaconAddr           string
@@ -79,7 +71,7 @@ func NewCLIConfig() CLIConfig {
 	return CLIConfig{}
 }
 
-func ReadCLIConfig(ctx *cli.Context) CLIConfig {
+func ReadCLIConfig(ctx *cli.Context, l1ChainId *big.Int) CLIConfig {
 	var useBlobs bool
 	switch ctx.String(DataAvailabilityTypeFlagName) {
 	case "blobs":
@@ -88,7 +80,7 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		useBlobs = false
 	}
 
-	signer := types.NewCancunSigner(new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)))
+	signer := types.NewCancunSigner(l1ChainId)
 
 	dsConfig := DataSourceConfig{
 		l1Signer:          signer,
@@ -97,7 +89,6 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	}
 
 	return CLIConfig{
-		L1ChainID:              new(big.Int).SetUint64(ctx.Uint64(L1ChainIdFlagName)),
 		DSConfig:               &dsConfig,
 		UseBlobs:               useBlobs,
 		L1BeaconAddr:           ctx.String(L1BeaconFlagName),

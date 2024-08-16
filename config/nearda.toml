@@ -1,0 +1,5 @@
+account = "wwqcontract.testnet"
+contract = "wwqcontract.testnet"
+key = "ed25519:4btKLuh9xbrybQUYaJJTeKb1cC35kYtpVxsGByT1H9ixR8PaCoCHHfHq1tEVm4ABG9fckSEDcWcxVzhc3J3C5tNv"
+network = "Testnet"
+ns = 1
